@@ -151,6 +151,7 @@ def parse_policy(text):
         '"inferred_exclusions": [{"theme": "...", "reason": "why the mission implies it"}], '
         '"risk": "low|moderate|high", '
         '"max_position": number between 0.02 and 0.25 (default 0.10), '
+        '"horizon_years": whole number of years they plan to invest for (default 5), '
         '"values_summary": "one sentence describing what the charity cares about and avoids, '
         'used to judge industries and news"}'
     )
@@ -159,6 +160,10 @@ def parse_policy(text):
     p.setdefault("inferred_exclusions", [])
     p["risk"] = p.get("risk") if p.get("risk") in SPLITS else "moderate"
     p["max_position"] = float(min(max(float(p.get("max_position", 0.10)), 0.02), 0.25))
+    try:
+        p["horizon_years"] = int(min(max(int(p.get("horizon_years") or 5), 3), 10))
+    except (TypeError, ValueError):
+        p["horizon_years"] = 5
     p.setdefault("values_summary", text)
     return p
 
@@ -234,23 +239,25 @@ def get_risk_free():
     return cached("risk_free", fetch)
 
 
-def get_prices(tickers):
-    path = CACHE / "prices.csv"
+def get_prices(tickers, years=5):
+    """Daily prices covering the charity's investment horizon (e.g. 5 years for a 5-year plan)."""
+    path = CACHE / f"prices_{years}y.csv"
     if USE_CACHE and path.exists():
         df = pd.read_csv(path, index_col=0, parse_dates=True)
         return df[[t for t in tickers if t in df.columns]]
-    df = yf.download(tickers, period="3y", auto_adjust=True, progress=False)["Close"]
+    df = yf.download(tickers, period=f"{years}y", auto_adjust=True, progress=False)["Close"]
     if isinstance(df, pd.Series):
         df = df.to_frame(tickers[0])
     df.to_csv(path)
     return df
 
 
-def compute_metrics(prices, rf):
+def compute_metrics(prices, rf, years=5):
     rows = {}
+    min_days = int(252 * years * 0.9)  # need ~90% of the horizon to judge a company fairly
     for t in prices.columns:
         p = prices[t].dropna()
-        if len(p) < 200:
+        if len(p) < min_days:
             continue
         r = p.pct_change().dropna()
         years = len(p) / 252
@@ -370,6 +377,8 @@ def explain(policy, port, screen_df, split, rate_note, macro_context,
         "news-screen decisions. Round dollar figures to the nearest $100. "
         "Where an exclusion was inferred from the charity's mission rather than stated, say so "
         "and give the reason (from policy.inferred_exclusions). "
+        "Mention the charity's investment horizon (policy.horizon_years) and that all return and "
+        "risk figures cover that many years of history. "
         "After the industry and news ethics screens, candidates that passed or were flagged "
         "for review were ranked with "
         f"{VOLATILITY_WEIGHT:.0%} weight on lower relative historical volatility and "
@@ -378,7 +387,8 @@ def explain(policy, port, screen_df, split, rate_note, macro_context,
         "the sector match is broad, not company revenue exposure. This ranking has not been "
         "backtested. Up to 20 news-screen candidates were preselected by historical Sharpe, "
         "so the ranking does not cover every company in the universe. At most two selected "
-        "stocks per industry. Include macro score x, source observation years, and data "
+        "stocks per industry. The final shortlist uses this combined ranking, not the "
+        "preselection Sharpe order. Include macro score x, source observation years, and data "
         "recency/confidence. If macro data is stale or unavailable, call the macro factor "
         "neutral; do not present it as observed. Do not mention exclusion themes that matched no companies. "
         "Plain English. Sections: 1) Recommendation in two sentences, "
@@ -434,7 +444,8 @@ def run(policy_text, progress=None):
         else:
             allowed.append(t)
 
-    step(0.32, "Fetching interest rates and 3 years of prices…")
+    years = policy["horizon_years"]
+    step(0.32, f"Fetching interest rates and {years} years of prices…")
     rf = get_risk_free()
     step(0.33, "Fetching and cleaning annual US macro indicators from the World Bank…")
     try:
@@ -448,7 +459,7 @@ def run(policy_text, progress=None):
             "regime": "unavailable",
             "stale": True,
         }
-    metrics = compute_metrics(get_prices(allowed + list(FUNDS)), rf)
+    metrics = compute_metrics(get_prices(allowed + list(FUNDS), years), rf, years)
 
     # The news API/LLM budget preselects by historical Sharpe; reranking follows
     # the independent industry and news ethics screens.
@@ -533,8 +544,8 @@ def run(policy_text, progress=None):
 
 
 if __name__ == "__main__":
-    demo = ("We are a cancer research charity funding early-detection research. We will not invest "
-            "in weapons. We need moderate risk because we fund grants every year, "
+    demo = ("We are a cancer research charity funding early-detection research. We are investing "
+            "for 5 years and will not invest in weapons. We need moderate risk because we fund grants every year, "
             "and no single company should be more than 8% of the portfolio.")
     out = run(demo, progress=lambda f, m: print(f"[{f:.0%}] {m}"))
     print("\nScanned", out["companies_scanned"], "companies")

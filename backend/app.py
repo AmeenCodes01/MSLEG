@@ -9,8 +9,8 @@ st.title("Ethical Charity AI Analyst")
 st.caption("Turns a charity's values into a $100,000 portfolio, with every decision explained. "
            "Educational hackathon project. Not financial advice.")
 
-DEFAULT = ("We are a cancer research charity funding early-detection research. We will not invest "
-           "in weapons. We need moderate risk because we fund grants every year, "
+DEFAULT = ("We are a cancer research charity funding early-detection research. We are investing "
+           "for 5 years and will not invest in weapons. We need moderate risk because we fund grants every year, "
            "and no single company should be more than 8% of the portfolio.")
 
 policy_text = st.text_area("The charity's investment policy (plain English)", DEFAULT, height=120)
@@ -100,7 +100,7 @@ if res:
     c1.metric("Companies scanned", res["companies_scanned"])
     c2.metric("Excluded", int((scr.status == "excluded").sum()))
     c3.metric("3-month T-bill yield", f"{res['rf']:.2%}")
-    c4.metric("Historical return (est.)", f"{res['expected_return']:.1%}")
+    c4.metric(f"Historical return ({res['policy'].get('horizon_years', 5)}y avg)", f"{res['expected_return']:.1%}")
 
     pol = res["policy"]
     if pol.get("inferred_exclusions"):
