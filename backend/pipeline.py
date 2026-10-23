@@ -93,7 +93,28 @@ def _model():
     return os.getenv("AZURE_OPENAI_DEPLOYMENT") or os.getenv("OPENAI_MODEL", "gpt-4o")
 
 
+def _llm_cached(kind, system, user, call):
+    """Save every AI answer; with USE_CACHE=1 the same question is answered from disk instantly."""
+    import hashlib
+    key = "llm_" + hashlib.sha1(f"{kind}|{_model()}|{system}|{user}".encode()).hexdigest()[:20]
+    if USE_CACHE:
+        hit = _load(key)
+        if hit is not None:
+            return hit["answer"]
+    answer = call()
+    _save(key, {"answer": answer})
+    return answer
+
+
 def llm_json(system, user):
+    return _llm_cached("json", system, user, lambda: _llm_json_live(system, user))
+
+
+def llm_text(system, user):
+    return _llm_cached("text", system, user, lambda: _llm_text_live(system, user))
+
+
+def _llm_json_live(system, user):
     r = _llm().chat.completions.create(
         model=_model(),
         response_format={"type": "json_object"},
@@ -102,7 +123,7 @@ def llm_json(system, user):
     return json.loads(r.choices[0].message.content)
 
 
-def llm_text(system, user):
+def _llm_text_live(system, user):
     r = _llm().chat.completions.create(
         model=_model(),
         messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
