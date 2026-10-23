@@ -351,9 +351,10 @@ function whyChosen(holding, row) {
   if (!row || row.stage === "fund") return `Fund that gives the portfolio its ${holding.asset_class} share`;
   const news = row.news_checked ? `news OK (${row.news_checked} headlines)` : "no recent news found to check";
   const pick = row.selection_rank
-    ? `; final rank #${row.selection_rank} of ${row.selection_of}: calmness ${row.volatility_score}, economy fit ${row.macro_fit_score} (${row.sector})`
+    ? `; final rank #${row.selection_rank} of ${row.selection_of}: calmness ${Number(row.volatility_score).toFixed(2)}, `
+      + `economy fit ${Number(row.macro_fit_score).toFixed(2)} (${row.sector})`
     : "";
-  return `Top ${row.rank} of ${row.ranked_of} on return per unit of risk; ${news}${pick}`
+  return `#${row.rank} of ${row.ranked_of} on return per unit of risk; ${news}${pick}`
     + (holding.flagged ? `. Flagged, so held at half weight: ${row.reason}` : "");
 }
 
@@ -374,15 +375,28 @@ function macroLine(m) {
 function resultMarkdown(res) {
   const byTicker = Object.fromEntries(res.screen.map((s) => [s.ticker, s]));
   const count = (status) => res.screen.filter((s) => s.status === status).length;
-  const stocks = res.portfolio.filter((h) => byTicker[h.ticker]?.stage !== "fund").length;
-  const holdings = res.portfolio.map((h) =>
-    `| ${cell(h.name)} (${h.ticker}) | ${h.asset_class} | ${money(h.dollars)} | ${pct(h.annual_return)} | ${pct(h.volatility)} | ${cell(whyChosen(h, byTicker[h.ticker]))} |`);
+  const isFund = (h) => byTicker[h.ticker]?.stage === "fund";
+  const picks = res.portfolio.filter((h) => !isFund(h))
+    .sort((a, b) => (byTicker[a.ticker]?.selection_rank ?? 99) - (byTicker[b.ticker]?.selection_rank ?? 99));
+  const funds = res.portfolio.filter(isFund);
+  const fundTotal = funds.reduce((sum, h) => sum + h.dollars, 0);
+  const byClass = (cls) => money(funds.filter((h) => h.asset_class === cls).reduce((sum, h) => sum + h.dollars, 0));
   const dropped = res.screen.filter((s) => s.status === "excluded" || s.status === "flagged").map((s) =>
     `- **${s.status === "excluded" ? "Excluded" : "Flagged"}: ${cell(s.name)} (${s.ticker})**: ${s.reason}`
     + (s.evidence ? ` Evidence: ${s.url ? `[${s.evidence}](${s.url})` : s.evidence}` : ""));
   const p = res.policy;
   const inferred = (p.inferred_exclusions || []).map((x) => `- **${cell(tag(x.theme))}**: ${x.reason}`);
   return [
+    `**Top ${picks.length} companies to invest in**`,
+    "",
+    "| # | Company | Industry | Amount | Annual return | Volatility | Why chosen |",
+    "| ---: | :--- | :--- | ---: | ---: | ---: | :--- |",
+    ...picks.map((h, i) => `| ${i + 1} | ${cell(h.name)} (${h.ticker}) | ${cell(h.industry)} | ${money(h.dollars)} | `
+      + `${pct(h.annual_return)} | ${pct(h.volatility)} | ${cell(whyChosen(h, byTicker[h.ticker]))} |`),
+    "",
+    `**The other ${money(fundTotal)}** sits in ${funds.length} diversified funds (bonds ${byClass("bond")}, `
+      + `cash ${byClass("cash")}, ESG equity ${byClass("equity")}) to keep the portfolio at your ${p.risk} risk level.`,
+    "",
     `**How I read your policy**: mission *${cell(p.mission)}*; excluding ${(p.exclude_tags || []).map(tag).join(", ") || "nothing"}; `
       + `${p.risk} risk; ${p.horizon_years}-year horizon; at most ${pct(p.max_position)} in any one company.`
       + ((p.news_concerns || []).length ? ` Checked in the news, not excluded outright: ${p.news_concerns.map(cell).join("; ")}.` : ""),
@@ -390,13 +404,7 @@ function resultMarkdown(res) {
     ...(res.macro_context ? ["", macroLine(res.macro_context)] : []),
     "",
     `**${res.companies_scanned} companies scanned**: ${count("excluded")} excluded, ${count("flagged")} flagged, `
-      + `${count("not_selected")} not chosen, ${stocks} chosen, plus ${res.portfolio.length - stocks} funds.`,
-    "",
-    "**Where the $100,000 goes, and why**",
-    "",
-    "| Holding | Type | Amount | Annual return | Volatility | Why chosen |",
-    "| :--- | :--- | ---: | ---: | ---: | :--- |",
-    ...holdings,
+      + `${count("not_selected")} not chosen, ${picks.length} chosen.`,
     "",
     "**Excluded or flagged, and why**",
     "",
@@ -405,20 +413,34 @@ function resultMarkdown(res) {
   ].join("\n");
 }
 
-function appendNotChosen(bubble, res) {
-  const rows = res.screen.filter((s) => s.status === "not_selected");
-  if (!rows.length) return;
+function appendDetails(bubble, title, markdown) {
   const details = document.createElement("details");
   details.className = "result-details";
   const summary = document.createElement("summary");
-  summary.textContent = `See why the other ${rows.length} of ${res.companies_scanned} companies weren’t chosen`;
+  summary.textContent = title;
   details.append(summary);
-  renderMarkdown([
-    "| Company | Step | Reason |",
-    "| :--- | :--- | :--- |",
-    ...rows.map((s) => `| ${cell(s.name)} (${s.ticker}) | ${cell(s.stage)} | ${cell(s.reason)} |`),
-  ].join("\n"), details);
+  renderMarkdown(markdown, details);
   bubble.append(details);
+}
+
+function appendBreakdowns(bubble, res) {
+  const fundRows = res.screen.filter((s) => s.stage === "fund").map((s) => s.ticker);
+  const funds = res.portfolio.filter((h) => fundRows.includes(h.ticker));
+  if (funds.length) {
+    appendDetails(bubble, `See the ${funds.length} funds holding the rest of the money`, [
+      "| Fund | Type | Amount | Annual return | Volatility |",
+      "| :--- | :--- | ---: | ---: | ---: |",
+      ...funds.map((h) => `| ${cell(h.name)} (${h.ticker}) | ${h.asset_class} | ${money(h.dollars)} | ${pct(h.annual_return)} | ${pct(h.volatility)} |`),
+    ].join("\n"));
+  }
+  const rows = res.screen.filter((s) => s.status === "not_selected");
+  if (rows.length) {
+    appendDetails(bubble, `See why the other ${rows.length} of ${res.companies_scanned} companies weren’t chosen`, [
+      "| Company | Step | Reason |",
+      "| :--- | :--- | :--- |",
+      ...rows.map((s) => `| ${cell(s.name)} (${s.ticker}) | ${cell(s.stage)} | ${cell(s.reason)} |`),
+    ].join("\n"));
+  }
 }
 
 let running = false;
@@ -442,7 +464,7 @@ async function runAnalysis(policy) {
     const res = await response.json();
     if (!response.ok) throw new Error(res.error || `Server returned ${response.status}`);
     fillProfile(res.policy);
-    appendNotChosen(addMessage(resultMarkdown(res)), res);
+    appendBreakdowns(addMessage(resultMarkdown(res)), res);
     addMessage(res.memo);
   } catch (error) {
     addMessage(`The analysis could not run: ${error.message}`);
