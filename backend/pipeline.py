@@ -36,7 +36,6 @@ USE_CACHE = os.getenv("USE_CACHE", "0") == "1"
 UNIVERSE_SIZE = 100      # how many of the largest US companies to scan
 SHORTLIST = 20           # best risk-adjusted stocks sent to the AI news screen
 MAX_STOCKS = 12          # stocks kept in the final portfolio
-MAX_PER_INDUSTRY = 2     # diversification: at most this many stocks from one industry
 
 TAGS = ["fossil_fuels", "tobacco", "weapons", "gambling", "alcohol"]
 # No fixed exclusions: what a charity avoids depends on its mission
@@ -369,7 +368,7 @@ def explain(policy, port, screen_df, split, rate_note, macro_context, rf, exp_re
         f"Up to {SHORTLIST} companies with the best historical Sharpe ratio were news-checked; those that "
         f"passed were ranked {VOLATILITY_WEIGHT:.0%} on lower relative volatility and {MACRO_FIT_WEIGHT:.0%} "
         "on how well their broad sector fits the US economic-strength score from World Bank data, "
-        f"with at most {MAX_PER_INDUSTRY} stocks per industry. The macro score is a descriptive heuristic, "
+        "with no limit per industry. The macro score is a descriptive heuristic, "
         "not a forecast, and has not been backtested; say so. Give the score, its regime and the data "
         "years. If macro data is stale or unavailable, say the macro factor was neutral. "
         "Plain English. Sections: 1) Recommendation in two sentences, "
@@ -473,23 +472,19 @@ def run(policy_text, progress=None):
     # News survivors are re-ranked on lower volatility and sector fit with the economy (macro.py).
     by_ticker = {r["ticker"]: r for r in rows}
     ranking = rank_candidates(candidates, metrics, profiles, macro_context)
-    chosen, per_industry = [], {}
+    chosen = []
     for pos, c in enumerate(ranking, start=1):
         row = by_ticker[c["ticker"]]
         row.update({"selection_rank": pos, "selection_of": len(ranking), "sector": c["sector"],
                     "volatility_score": round(c["volatility_score"], 3),
                     "macro_fit_score": c["macro_fit_score"], "ranking_score": round(c["ranking_score"], 3),
                     "macro_fit_reason": c["macro_fit_reason"]})
-        industry = c["industry"]
-        if len(chosen) < MAX_STOCKS and per_industry.get(industry, 0) < MAX_PER_INDUSTRY:
+        if len(chosen) < MAX_STOCKS:
             chosen.append((c["ticker"], c["flagged"]))
-            per_industry[industry] = per_industry.get(industry, 0) + 1
             continue
-        why = (f"Portfolio already holds {MAX_STOCKS} stocks" if len(chosen) >= MAX_STOCKS
-               else f"Already {MAX_PER_INDUSTRY} stocks from {industry}")
         row["status"] = "not_selected"
-        row["reason"] = (f"{why}; combined rank #{pos} of {len(ranking)} on volatility and economy fit. "
-                         f"News check: {row['reason']}")
+        row["reason"] = (f"Portfolio already holds {MAX_STOCKS} stocks; combined rank #{pos} of {len(ranking)} "
+                         f"on volatility and economy fit. News check: {row['reason']}")
     for c in candidates:
         if not any(r["ticker"] == c["ticker"] for r in ranking):
             by_ticker[c["ticker"]].update(status="not_selected", reason="Its volatility couldn't be measured, so it couldn't be ranked.")

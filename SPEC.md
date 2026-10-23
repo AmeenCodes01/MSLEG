@@ -92,7 +92,7 @@ Purna's `backend/api.py` (FastAPI, `POST /api/analyse` on port 8001, see `backen
 - defensive sectors (healthcare, consumer defensive, utilities) score = 1 − the macro score
 - other sectors (technology, energy, communication services) score 0.5
 
-The top 12 by that combined score are picked, at most 2 per industry. The macro data does **not** change exclusions or dollar amounts. If the World Bank is unreachable or its data is over 4 years old, every company gets a neutral 0.5. The score is an unvalidated heuristic, not a forecast.
+The top 12 by that combined score are picked; there is no per-industry limit. The macro data does **not** change exclusions or dollar amounts. If the World Bank is unreachable or its data is over 4 years old, every company gets a neutral 0.5. The score is an unvalidated heuristic, not a forecast.
 
 ## What the chat shows
 
