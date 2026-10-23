@@ -115,11 +115,22 @@ if res:
     with left:
         st.subheader("Where the $100,000 goes")
         by_class = port.groupby("asset_class", as_index=False)["dollars"].sum()
-        st.altair_chart(
-            alt.Chart(by_class).mark_arc(innerRadius=60).encode(
-                theta="dollars:Q", color="asset_class:N",
-                tooltip=["asset_class", alt.Tooltip("dollars:Q", format="$,.0f")]),
-            use_container_width=True)
+        nice = {"equity": "Equities", "bond": "Bonds", "cash": "Cash"}
+        by_class["label"] = by_class.asset_class.map(lambda c: nice.get(c, c))
+        by_class["text"] = by_class.apply(
+            lambda r: f"{r.label} ${r.dollars:,.0f} ({r.dollars / by_class.dollars.sum():.0%})", axis=1)
+        base = alt.Chart(by_class).encode(
+            theta=alt.Theta("dollars:Q", stack=True),
+            color=alt.Color("label:N", legend=None,
+                            scale=alt.Scale(domain=["Equities", "Bonds", "Cash"],
+                                            range=["#e8836b", "#6aa9e9", "#2f5fb3"])))
+        donut = base.mark_arc(innerRadius=70, outerRadius=150)
+        labels = base.mark_text(radius=195, size=16, fontWeight="bold", color="#e8e8e8").encode(text="text:N")
+        st.altair_chart((donut + labels).properties(height=440), use_container_width=True)
+        cols = st.columns(len(by_class))
+        for col, (_, r) in zip(cols, by_class.sort_values("dollars", ascending=False).iterrows()):
+            col.metric(r.label, f"${r.dollars:,.0f}", f"{r.dollars / by_class.dollars.sum():.0%} of total",
+                       delta_color="off")
         if res["rate_note"]:
             st.info(res["rate_note"])
     with right:
