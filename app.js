@@ -247,7 +247,7 @@ function addMessage(text, role = "assistant") {
   const avatar = document.createElement("div");
   avatar.className = "message-avatar";
   avatar.setAttribute("aria-hidden", "true");
-  avatar.textContent = role === "user" ? "NC" : "✳";
+  avatar.textContent = role === "user" ? "You" : "✳";
 
   const body = document.createElement("div");
   body.className = "message-body";
