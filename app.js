@@ -347,9 +347,26 @@ const cell = (s) => String(s ?? "").replace(/\|/g, "/");
 
 function whyChosen(holding, row) {
   if (!row || row.stage === "fund") return `Fund that gives the portfolio its ${holding.asset_class} share`;
-  const news = row.news_checked ? `${row.news_checked} news headlines checked, none conflict` : "no recent news found to check";
-  return `Ranked #${row.rank} of ${row.ranked_of} on return per unit of risk; ${news}`
+  const news = row.news_checked ? `news OK (${row.news_checked} headlines)` : "no recent news found to check";
+  const pick = row.selection_rank
+    ? `; final rank #${row.selection_rank} of ${row.selection_of}: calmness ${row.volatility_score}, economy fit ${row.macro_fit_score} (${row.sector})`
+    : "";
+  return `Top ${row.rank} of ${row.ranked_of} on return per unit of risk; ${news}${pick}`
     + (holding.flagged ? `. Flagged, so held at half weight: ${row.reason}` : "");
+}
+
+function macroLine(m) {
+  if (m.status !== "available" || m.stale) {
+    return `**Economy (World Bank)**: ${m.description || "not available"}. The economy factor was neutral (0.5) for every company.`;
+  }
+  const c = m.components || {};
+  const part = (key, label) => (c[key] ? `${label} ${c[key].raw_value.toFixed(1)}% (${c[key].observation_year})` : null);
+  const facts = [part("gdp_growth", "GDP growth"), part("inflation", "inflation"), part("unemployment", "unemployment")]
+    .filter(Boolean).join(", ");
+  return `**Economy (World Bank, US)**: ${facts}, so the strength score is ${m.score.toFixed(2)} (${m.regime}). `
+    + "Final picks weigh calmness (low volatility) and economy fit equally: cyclical sectors such as industrials "
+    + "and financials fit a strong economy, defensive ones such as healthcare and utilities fit a weak one. "
+    + "*A descriptive rule of thumb, not a forecast, and not backtested.*";
 }
 
 function resultMarkdown(res) {
@@ -367,6 +384,7 @@ function resultMarkdown(res) {
     `**How I read your policy**: mission *${cell(p.mission)}*; excluding ${(p.exclude_tags || []).join(", ") || "nothing"}; `
       + `${p.risk} risk; at most ${pct(p.max_position)} in any one company.`,
     ...(inferred.length ? ["", "**Excluded because of your mission** (not stated in your policy):", "", ...inferred] : []),
+    ...(res.macro_context ? ["", macroLine(res.macro_context)] : []),
     "",
     `**${res.companies_scanned} companies scanned**: ${count("excluded")} excluded, ${count("flagged")} flagged, `
       + `${count("not_selected")} not chosen, ${stocks} chosen, plus ${res.portfolio.length - stocks} funds.`,

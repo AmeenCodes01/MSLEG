@@ -7,6 +7,7 @@ import pipeline as p
 N = 100
 TICKERS = [f"T{i:02d}" for i in range(N)]
 INDUSTRY = {"T00": "Tobacco", "T01": "Aerospace & Defense"}
+SECTORS = ["Healthcare", "Industrials", "Technology"]
 SHORT_HISTORY = {"T02"}
 
 rng = np.random.default_rng(0)
@@ -21,8 +22,9 @@ p.parse_policy = lambda text: {"mission": "cancer research", "exclude_tags": ["t
                                "values_summary": text}
 p.get_universe = lambda: [{"ticker": t, "name": t} for t in TICKERS]
 p.get_profiles = lambda tickers, progress=None: {
-    t: {"industry": INDUSTRY.get(t, "Software"), "sector": "Tech", "name": f"Company {t}", "category": None}
-    for t in tickers}
+    t: {"industry": INDUSTRY.get(t, f"Industry {i % 10}"), "sector": SECTORS[i % 3], "name": f"Company {t}",
+        "category": None}
+    for i, t in enumerate(tickers)}
 p.ai_industry_screen = lambda industries, policy: {}
 p.get_risk_free = lambda: 0.04
 p.get_prices = lambda tickers: prices[tickers]
@@ -31,6 +33,14 @@ p.judge_news = lambda t, name, news, policy: (
     {"verdict": "exclude", "reason": "Scandal.", "evidence": news[0]["headline"]} if t == shortlist_first[0]
     else {"verdict": "pass", "reason": "No conflict.", "evidence": None})
 p.explain = lambda *a: "memo"
+
+
+class FakeMacro:
+    def analyze(self):
+        return {"status": "available", "score": 0.8, "regime": "Strong", "stale": False, "confidence": "high"}
+
+
+p.WorldBankMacroAnalyzer = FakeMacro
 
 ranked = p.compute_metrics(prices[[t for t in TICKERS if t not in ("T00", "T01")]], 0.04)
 shortlist_first = list(ranked.sort_values("sharpe", ascending=False).index[:1])
@@ -48,6 +58,12 @@ held = set(port.ticker) - set(p.FUNDS)
 assert len(held) == p.MAX_STOCKS
 assert set(companies[companies.ticker.isin(held)].status) <= {"included", "flagged"}
 assert (companies.status == "included").sum() == p.MAX_STOCKS, "included means held"
+assert out["macro_context"]["score"] == 0.8
+held_rows = companies[companies.ticker.isin(held)]
+assert held_rows.groupby("industry").size().max() <= p.MAX_PER_INDUSTRY
+assert held_rows.selection_rank.notna().all()
+news_checked = companies[companies.stage == "AI news screen"]
+assert len(news_checked) == p.SHORTLIST
 assert port.dollars.sum() == p.BUDGET
 print(companies.status.value_counts().to_dict())
 print("ok")

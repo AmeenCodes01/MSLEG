@@ -5,8 +5,9 @@ The user pastes their charity's investment policy into the chat (or clicks an ex
 ```
 chat text --POST /api/run {"policy": "..."}--> backend/server.py --> pipeline.run(policy)
                                                                        |  parse_policy: LLM -> JSON rules
-                                                                       |  industry screen -> prices -> rank
-                                                                       |  news check (LLM, JSON) -> allocate
+                                                                       |  industry screen -> prices -> Sharpe rank
+                                                                       |  news check top 20 (LLM, JSON)
+                                                                       |  World Bank macro re-rank -> pick 12 -> allocate
                                                                        |  memo (LLM, markdown)
 chat <------------------------------- JSON result ---------------------'
 ```
@@ -64,6 +65,7 @@ Purna's `backend/api.py` (FastAPI, `POST /api/analyse` on port 8001, see `backen
   "portfolio": [{"ticker": "MSFT", "name": "...", "industry": "...", "asset_class": "equity", "weight": 0.07, "dollars": 7000, "flagged": false, "annual_return": 0.16, "volatility": 0.23, "max_drawdown": -0.21, "sharpe": 0.52}],
   "screen": [{"ticker": "PM", "name": "...", "industry": "Tobacco", "status": "excluded", "stage": "industry screen (no data used)", "reason": "...", "evidence": null, "url": null}],
   "split": {"equity": 0.5, "bond": 0.35, "cash": 0.15},
+  "macro_context": {"status": "available", "score": 0.72, "regime": "Strong", "stale": false, "components": {"gdp_growth": {"raw_value": 2.2, "observation_year": 2025}}},
   "rate_note": "string or null",
   "expected_return": 0.081,
   "risk_free_rate": 0.042,
@@ -78,24 +80,36 @@ Purna's `backend/api.py` (FastAPI, `POST /api/analyse` on port 8001, see `backen
     - `flagged`: held at half weight because of a news concern
     - `excluded`: dropped by the industry screen or the news check
     - `not_selected`: allowed, but not picked (`stage` says why: `price history`, `risk ranking`, or `AI news screen` when the portfolio was already full)
-- Optional `screen` fields: `rank` and `ranked_of` (position on return per unit of risk), `news_checked` (number of headlines read). `evidence` is the headline the AI relied on; the pipeline drops it if it isn't one of the real headlines.
+- Optional `screen` fields: `rank` and `ranked_of` (position on return per unit of risk), `news_checked` (number of headlines read). Companies that passed the news check also get `selection_rank`, `selection_of`, `sector`, `volatility_score` (1 = calmest), `macro_fit_score`, `ranking_score` and `macro_fit_reason`. `evidence` is the headline the AI relied on; the pipeline drops it if it isn't one of the real headlines.
 - `notes`: things the user should know weren't checked. If no news came back for any company, a note says so and points at `FINNHUB_API_KEY`.
 - Missing numbers are `null`, never `NaN`. Errors are `400` or `500` with `{"error": "..."}`, shown in the chat.
+
+## How the World Bank data changes the picks
+
+`backend/macro.py` (Norbert) fetches US real GDP growth, inflation and unemployment from the World Bank and turns them into an economic-strength score from 0 to 1 (GDP 50%, inflation 25%, unemployment 25%). The top 20 companies by Sharpe ratio are news-checked; the survivors are re-ranked on **50% lower volatility + 50% sector fit with the economy**:
+
+- cyclical sectors (industrials, financial services, consumer cyclical, real estate, basic materials) score = the macro score
+- defensive sectors (healthcare, consumer defensive, utilities) score = 1 − the macro score
+- other sectors (technology, energy, communication services) score 0.5
+
+The top 12 by that combined score are picked, at most 2 per industry. The macro data does **not** change exclusions or dollar amounts. If the World Bank is unreachable or its data is over 4 years old, every company gets a neutral 0.5. The score is an unvalidated heuristic, not a forecast.
 
 ## What the chat shows
 
 1. How the AI read the policy, and any exclusions it inferred from the mission
 2. The funnel: scanned, excluded, flagged, not chosen, chosen, funds
-3. The holdings table with a **Why chosen** column, built in code from rank and news-check counts
-4. Excluded and flagged companies, each with its reason and evidence headline
-5. A "See why the other N weren't chosen" accordion with every `not_selected` company
-6. The memo
+3. The economy line: World Bank figures, the strength score, and how it was used
+4. The holdings table with a **Why chosen** column, built in code from rank, news-check counts and the final macro ranking
+5. Excluded and flagged companies, each with its reason and evidence headline
+6. A "See why the other N weren't chosen" accordion with every `not_selected` company
+7. The memo
 
 ## Who owns what
 
 | File | Owner | Notes |
 | --- | --- | --- |
 | `index.html`, `app.js`, `styles.css` | Norbert | `runAnalysis()`, `resultMarkdown()`, `appendNotChosen()` and `fillProfile()` in `app.js` are the bridge |
+| `backend/macro.py`, `backend/test_macro.py` | Norbert | World Bank score and candidate ranking |
 | `backend/pipeline.py`, `backend/app.py`, `backend/api.py` | Purna | `app.py` is a separate Streamlit test page |
 | `backend/server.py`, `backend/sample_data/`, `backend/test_*.py` | Ameen | the bridge |
 

@@ -37,6 +37,7 @@ def to_json(out):
         "portfolio": records(out["portfolio"]),
         "screen": records(scr),
         "split": out["split"],
+        "macro_context": out.get("macro_context"),
         "rate_note": out["rate_note"],
         "expected_return": out["expected_return"],
         "risk_free_rate": out["rf"],
