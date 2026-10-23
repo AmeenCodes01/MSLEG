@@ -36,8 +36,28 @@ Response (shape):
   },
   "summary": {
     "budget": 100000, "companies_scanned": 100, "excluded_count": 4,
-    "risk_free_rate": 0.042, "historical_return_estimate": 0.33, "rate_note": "..."
+    "risk_free_rate": 0.042, "historical_return_estimate": 0.33, "rate_note": "...",
+    "news_review_candidate_cap": 20, "economic_strength_score": 0.61
   },
+  "macro_context": {
+    "status": "available", "source": "World Bank Open Data API",
+    "country_code": "USA", "score": 0.61, "confidence": "high",
+    "regime": "Mixed", "stale": false,
+    "indicators": {
+      "gdp_growth": { "latest": { "year": 2025, "value": 2.1 } },
+      "inflation": { "latest": { "year": 2025, "value": 3.0 } },
+      "unemployment": { "latest": { "year": 2025, "value": 4.2 } }
+    },
+    "methodology": "...", "source_urls": { "gdp_growth": "https://api.worldbank.org/..." }
+  },
+  "candidate_ranking": [
+    {
+      "selection_rank": 1, "ticker": "EXAMPLE", "macro_score": 0.61,
+      "macro_fit_score": 0.61, "volatility_score": 0.80,
+      "ranking_score": 0.705, "selected": true,
+      "macro_fit_reason": "Cyclical sector proxy; ..."
+    }
+  ],
   "allocation_by_class": { "equity": 0.5, "bond": 0.35, "cash": 0.15 },
   "holdings": [
     { "ticker": "SUSB", "name": "...", "industry": "Short-Term Bond", "asset_class": "bond",
@@ -57,7 +77,9 @@ Response (shape):
 }
 ```
 
-`status` is one of `included`, `flagged`, `excluded`. `memo_markdown` is Markdown (the chat already renders Markdown).
+Screening statuses include `included`, `flagged`, `excluded`, and `not selected` (ethics-cleared but outside the final portfolio shortlist). `memo_markdown` is Markdown (the chat already renders Markdown).
+
+The macro `score` is a descriptive 0–1 heuristic from annual US GDP growth (50%), inflation (25%), and unemployment (25%). Missing indicators are omitted and remaining weights renormalized; stale GDP data (>4 years) yields a neutral score of 0.5. On the candidate pool that has passed industry and news screening, the ranking combines normalized lower volatility (50%) and broad sector/macro fit (50%). Cyclical sector fit follows the macro score; defensive sector fit follows its inverse; unclassified sectors receive 0.5. This is not a probability, forecast, company revenue exposure, or validated recommendation. The news-review budget is limited to 20 companies, preselected by historical Sharpe, before the final ranking.
 
 ## Example call from `app.js`
 

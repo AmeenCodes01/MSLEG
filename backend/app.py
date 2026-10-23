@@ -23,6 +23,78 @@ if st.button("Build portfolio", type="primary"):
 res = st.session_state.get("result")
 if res:
     port, scr = res["portfolio"], res["screen"]
+    macro = res["macro_context"]
+
+    st.subheader("Economic-strength context")
+    if macro["status"] == "available":
+        score_column, regime_column, confidence_column = st.columns(3)
+        score_column.metric("Economic strength (x)", f"{macro['score']:.2f} / 1.00")
+        regime_column.metric("Descriptive regime", macro["regime"].replace("_", " ").title())
+        confidence_column.metric("Data coverage", macro["confidence"].title())
+        st.caption(
+            f"{macro['description']} GDP observation age: "
+            f"{macro['gdp_observation_age_years']} year(s)."
+        )
+        st.warning(
+            "This experimental score is not a probability, forecast, or validated investment "
+            "signal. It affects ranking only after the independent charity ethics screens. "
+            "Sector sensitivity is a broad proxy—not company-specific geographic revenue exposure."
+        )
+        with st.expander("Score components, method, and World Bank sources"):
+            st.write(macro["methodology"])
+            for key, component in macro["components"].items():
+                st.write(
+                    f"- {key.replace('_', ' ').title()}: component {component['score']:.2f}; "
+                    f"raw value {component['raw_value']:.2f} in "
+                    f"{component['observation_year']} (weight {component['weight']:.0%})"
+                )
+            for key, url in macro["source_urls"].items():
+                st.markdown(f"- [{key.replace('_', ' ').title()}]({url})")
+    else:
+        st.warning(
+            f"World Bank data unavailable: {macro.get('error', 'No details returned.')}. "
+            "Candidates use a neutral macro factor; no economic score is treated as observed."
+        )
+
+    ranking = res["candidate_ranking"]
+    st.subheader("Ethics-cleared candidate ranking")
+    st.caption(
+        f"Up to {res['news_review_candidate_cap']} candidates are reviewed for news controversies "
+        "after the industry screen; that budget is preordered by historical Sharpe. "
+        "Survivors are reranked by 50% lower relative volatility and 50% sector/macro fit. "
+        "This experimental ranking has not been backtested."
+    )
+    if ranking:
+        ranking_df = pd.DataFrame(ranking)
+        st.dataframe(
+            ranking_df[[
+                "selection_rank", "ticker", "name", "sector", "volatility",
+                "volatility_score", "macro_score", "macro_fit_score",
+                "ranking_score", "selected", "selection_reason",
+            ]].rename(columns={
+                "selection_rank": "Rank",
+                "ticker": "Ticker",
+                "name": "Company",
+                "sector": "Sector proxy",
+                "volatility": "Annual volatility",
+                "volatility_score": "Volatility factor",
+                "macro_score": "Economy x",
+                "macro_fit_score": "Sector/macro factor",
+                "ranking_score": "Combined score",
+                "selected": "Selected",
+                "selection_reason": "Selection explanation",
+            }).style.format({
+                "Annual volatility": "{:.1%}",
+                "Volatility factor": "{:.2f}",
+                "Economy x": "{:.2f}",
+                "Sector/macro factor": "{:.2f}",
+                "Combined score": "{:.2f}",
+            }),
+            use_container_width=True,
+            hide_index=True,
+        )
+    else:
+        st.info("No companies passed the industry and news ethics screens.")
 
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("Companies scanned", res["companies_scanned"])

@@ -19,6 +19,13 @@ import numpy as np
 import pandas as pd
 import requests
 import yfinance as yf
+from macro import (
+    MACRO_FIT_WEIGHT,
+    VOLATILITY_WEIGHT,
+    WorldBankDataError,
+    WorldBankMacroAnalyzer,
+    rank_candidates,
+)
 
 try:
     from dotenv import load_dotenv
@@ -350,7 +357,8 @@ def allocate(metrics, holdings, policy, rf):
 
 
 # ---------------------------------------------------------------- 7. explanation
-def explain(policy, port, screen_df, split, rate_note, rf, exp_ret, n_scanned):
+def explain(policy, port, screen_df, split, rate_note, macro_context,
+            candidate_ranking, rf, exp_ret, n_scanned):
     system = (
         "You are an investment analyst writing a short memo to a charity's trustees. "
         "You built this portfolio and you are recommending it; write confidently as its author. "
@@ -362,8 +370,17 @@ def explain(policy, port, screen_df, split, rate_note, rf, exp_ret, n_scanned):
         "news-screen decisions. Round dollar figures to the nearest $100. "
         "Where an exclusion was inferred from the charity's mission rather than stated, say so "
         "and give the reason (from policy.inferred_exclusions). "
-        "Stocks were picked by best risk-adjusted return (Sharpe ratio), at most two per industry "
-        "for diversification. Do not mention exclusion themes that matched no companies. "
+        "After the industry and news ethics screens, candidates that passed or were flagged "
+        "for review were ranked with "
+        f"{VOLATILITY_WEIGHT:.0%} weight on lower relative historical volatility and "
+        f"{MACRO_FIT_WEIGHT:.0%} on a sector-macro fit derived from an economic-strength "
+        "score. The macro score is a descriptive heuristic, not a probability or forecast; "
+        "the sector match is broad, not company revenue exposure. This ranking has not been "
+        "backtested. Up to 20 news-screen candidates were preselected by historical Sharpe, "
+        "so the ranking does not cover every company in the universe. At most two selected "
+        "stocks per industry. Include macro score x, source observation years, and data "
+        "recency/confidence. If macro data is stale or unavailable, call the macro factor "
+        "neutral; do not present it as observed. Do not mention exclusion themes that matched no companies. "
         "Plain English. Sections: 1) Recommendation in two sentences, "
         "2) How the $100,000 is split and why, 3) Top holdings and why each fits, "
         "4) What we excluded and why, 5) Key risks, "
@@ -375,10 +392,12 @@ def explain(policy, port, screen_df, split, rate_note, rf, exp_ret, n_scanned):
         "risk_free_rate": rf,
         "asset_class_split": split,
         "rate_adjustment": rate_note,
+        "macro_context": macro_context,
+        "candidate_ranking": candidate_ranking,
         "historical_return_estimate": exp_ret,
         "holdings": port[["ticker", "name", "industry", "asset_class", "dollars", "annual_return",
                           "volatility", "max_drawdown", "flagged"]].round(4).to_dict("records"),
-        "exclusions": screen_df[screen_df.status != "included"][
+        "exclusions": screen_df[screen_df.status.isin(["excluded", "flagged"])][
             ["ticker", "name", "industry", "status", "stage", "reason", "evidence"]].to_dict("records"),
     }
     return llm_text(system, json.dumps(payload, default=str))
@@ -417,17 +436,27 @@ def run(policy_text, progress=None):
 
     step(0.32, "Fetching interest rates and 3 years of prices…")
     rf = get_risk_free()
+    step(0.33, "Fetching and cleaning annual US macro indicators from the World Bank…")
+    try:
+        macro_context = WorldBankMacroAnalyzer().analyze()
+    except WorldBankDataError as error:
+        macro_context = {
+            "status": "unavailable",
+            "error": str(error),
+            "score": 0.5,
+            "confidence": "none",
+            "regime": "unavailable",
+            "stale": True,
+        }
     metrics = compute_metrics(get_prices(allowed + list(FUNDS)), rf)
 
-    # Walk down the best risk-adjusted stocks, keeping industries diversified,
-    # and let the AI read each candidate's news before it is accepted.
+    # The news API/LLM budget preselects by historical Sharpe; reranking follows
+    # the independent industry and news ethics screens.
     ranked = metrics.loc[[t for t in allowed if t in metrics.index]].sort_values("sharpe", ascending=False)
-    chosen, per_industry, checks = [], {}, 0
+    screened_candidates, checks = [], 0
     for t in ranked.index:
-        if len(chosen) >= MAX_STOCKS or checks >= MAX_NEWS_CHECKS:
+        if checks >= MAX_NEWS_CHECKS:
             break
-        if per_industry.get(profiles[t]["industry"], 0) >= MAX_PER_INDUSTRY:
-            continue
         checks += 1
         name = profiles[t]["name"]
         step(0.40 + 0.45 * checks / MAX_NEWS_CHECKS, f"AI reading news for {name}…")
@@ -439,8 +468,42 @@ def run(policy_text, progress=None):
                      "stage": "AI news screen", "reason": j.get("reason"),
                      "evidence": j.get("evidence"), "url": url, "headlines": len(news)})
         if status != "excluded":
-            chosen.append((t, status == "flagged"))
-            per_industry[profiles[t]["industry"]] = per_industry.get(profiles[t]["industry"], 0) + 1
+            screened_candidates.append({"ticker": t, "flagged": status == "flagged"})
+
+    candidate_ranking = rank_candidates(
+        screened_candidates, metrics, profiles, macro_context
+    )
+    chosen, per_industry = [], {}
+    screen_rows = {row["ticker"]: row for row in rows}
+    for rank, candidate in enumerate(candidate_ranking, start=1):
+        ticker = candidate["ticker"]
+        candidate["selection_rank"] = rank
+        row = screen_rows[ticker]
+        row.update({
+            "selection_rank": rank,
+            "ranking_score": candidate["ranking_score"],
+            "volatility_score": candidate["volatility_score"],
+            "macro_score": candidate["macro_score"],
+            "macro_fit_score": candidate["macro_fit_score"],
+            "sector": candidate["sector"],
+        })
+        industry = candidate["industry"]
+        if len(chosen) < MAX_STOCKS and per_industry.get(industry, 0) < MAX_PER_INDUSTRY:
+            chosen.append((ticker, candidate["flagged"]))
+            per_industry[industry] = per_industry.get(industry, 0) + 1
+            row["selection_reason"] = "Selected by combined volatility and macro-context rank."
+            candidate["selected"] = True
+            candidate["selection_reason"] = row["selection_reason"]
+        else:
+            candidate["selected"] = False
+            if row["status"] == "included":
+                row["status"] = "not selected"
+            row["selection_reason"] = (
+                "Outside the final shortlist after the combined ranking."
+                if len(chosen) >= MAX_STOCKS
+                else f"Industry diversification limit ({MAX_PER_INDUSTRY}) reached."
+            )
+            candidate["selection_reason"] = row["selection_reason"]
 
     for f in FUNDS:
         rows.append({"ticker": f, "name": profiles[f]["name"], "industry": profiles[f].get("category") or "Fund",
@@ -457,9 +520,14 @@ def run(policy_text, progress=None):
     step(0.88, "Building the allocation…")
     port, split, rate_note, exp_ret = allocate(metrics, holdings, policy, rf)
     step(0.93, "Writing the explanation…")
-    memo = explain(policy, port, screen_df, split, rate_note, rf, exp_ret, len(universe))
+    memo = explain(
+        policy, port, screen_df, split, rate_note, macro_context,
+        candidate_ranking, rf, exp_ret, len(universe)
+    )
     step(1.0, "Done")
     return {"policy": policy, "rf": rf, "split": split, "rate_note": rate_note,
+            "macro_context": macro_context, "candidate_ranking": candidate_ranking,
+            "news_review_candidate_cap": MAX_NEWS_CHECKS,
             "expected_return": exp_ret, "screen": screen_df, "portfolio": port, "memo": memo,
             "companies_scanned": len(universe), "ai_excluded_industries": ai_excl}
 

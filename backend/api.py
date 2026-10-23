@@ -52,7 +52,15 @@ def analyse(req: AnalyseRequest):
             "risk_free_rate": res["rf"],
             "historical_return_estimate": res["expected_return"],
             "rate_note": res["rate_note"],
+            "news_review_candidate_cap": res["news_review_candidate_cap"],
+            "economic_strength_score": (
+                res["macro_context"].get("score")
+                if res["macro_context"].get("status") == "available"
+                else None
+            ),
         },
+        "macro_context": res["macro_context"],
+        "candidate_ranking": _clean(res["candidate_ranking"]),
         "allocation_by_class": {k: round(v, 4) for k, v in res["split"].items()},
         "holdings": _clean(port[["ticker", "name", "industry", "asset_class", "dollars", "weight",
                                  "annual_return", "volatility", "max_drawdown", "flagged"]]
@@ -60,7 +68,10 @@ def analyse(req: AnalyseRequest):
         "exclusions": _clean(scr[scr.status.isin(["excluded", "flagged"])]
                              [["ticker", "name", "industry", "status", "stage", "reason", "evidence", "url"]]
                              .to_dict("records")),
-        "news_check": _clean(news.reindex(columns=["ticker", "name", "industry", "headlines", "status",
-                                                   "reason", "evidence", "url"]).to_dict("records")),
+        "news_check": _clean(news.reindex(columns=[
+            "ticker", "name", "industry", "headlines", "status", "reason", "evidence",
+            "url", "selection_rank", "ranking_score", "volatility_score", "macro_score",
+            "macro_fit_score", "selection_reason",
+        ]).to_dict("records")),
         "memo_markdown": res["memo"],
     }
