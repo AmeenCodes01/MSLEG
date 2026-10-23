@@ -65,23 +65,182 @@ const elements = {
   confirm: document.querySelector("#confirm-button"),
 };
 
-function escapeHtml(value) {
-  return value.replace(/[&<>"']/g, (character) => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#39;",
-  })[character]);
+function renderInlineMarkdown(text, parent, depth = 0) {
+  if (depth > 8) {
+    parent.append(document.createTextNode(text));
+    return;
+  }
+
+  const tokenPattern = /(`[^`\n]+`|\*\*[^*\n]+\*\*|__[^_\n]+__|~~[^~\n]+~~|\*[^*\n]+\*|_[^_\n]+_|\[[^\]\n]+\]\((?:https?:\/\/|\/)[^)\s]*\))/g;
+  let lastIndex = 0;
+  let match;
+
+  while ((match = tokenPattern.exec(text)) !== null) {
+    parent.append(document.createTextNode(text.slice(lastIndex, match.index)));
+    const token = match[0];
+    let element;
+
+    if (token.startsWith("`")) {
+      element = document.createElement("code");
+      element.textContent = token.slice(1, -1);
+    } else if (token.startsWith("**") || token.startsWith("__")) {
+      element = document.createElement("strong");
+      renderInlineMarkdown(token.slice(2, -2), element, depth + 1);
+    } else if (token.startsWith("~~")) {
+      element = document.createElement("del");
+      renderInlineMarkdown(token.slice(2, -2), element, depth + 1);
+    } else if (token.startsWith("*") || token.startsWith("_")) {
+      element = document.createElement("em");
+      renderInlineMarkdown(token.slice(1, -1), element, depth + 1);
+    } else {
+      const linkMatch = token.match(/^\[([^\]]+)\]\((https?:\/\/[^)\s]+|\/[^)\s]*)\)$/);
+      const href = linkMatch?.[2];
+      if (!linkMatch || !isSafeMarkdownUrl(href)) {
+        parent.append(document.createTextNode(token));
+        lastIndex = tokenPattern.lastIndex;
+        continue;
+      }
+      element = document.createElement("a");
+      element.href = href;
+      element.target = "_blank";
+      element.rel = "noopener noreferrer";
+      renderInlineMarkdown(linkMatch[1], element, depth + 1);
+    }
+
+    parent.append(element);
+    lastIndex = tokenPattern.lastIndex;
+  }
+
+  parent.append(document.createTextNode(text.slice(lastIndex)));
+}
+
+function isSafeMarkdownUrl(href) {
+  try {
+    const url = new URL(href, window.location.origin);
+    return url.protocol === "https:" || url.protocol === "http:";
+  } catch {
+    return false;
+  }
+}
+
+function renderMarkdown(text, parent) {
+  const lines = text.replace(/\r\n?/g, "\n").split("\n");
+  let index = 0;
+
+  while (index < lines.length) {
+    const line = lines[index];
+    if (!line.trim()) {
+      index += 1;
+      continue;
+    }
+
+    if (/^```/.test(line.trim())) {
+      const language = line.trim().slice(3).trim().split(/\s/, 1)[0];
+      const codeLines = [];
+      index += 1;
+      while (index < lines.length && !/^```\s*$/.test(lines[index].trim())) {
+        codeLines.push(lines[index]);
+        index += 1;
+      }
+      if (index < lines.length) index += 1;
+      const pre = document.createElement("pre");
+      const code = document.createElement("code");
+      if (/^[\w+-]+$/.test(language)) code.className = `language-${language}`;
+      code.textContent = codeLines.join("\n");
+      pre.append(code);
+      parent.append(pre);
+      continue;
+    }
+
+    const heading = line.match(/^(#{1,6})\s+(.+?)\s*#*\s*$/);
+    if (heading) {
+      const element = document.createElement(`h${heading[1].length}`);
+      renderInlineMarkdown(heading[2], element);
+      parent.append(element);
+      index += 1;
+      continue;
+    }
+
+    if (/^\s*(---+|___+|\*\*\*+)\s*$/.test(line)) {
+      parent.append(document.createElement("hr"));
+      index += 1;
+      continue;
+    }
+
+    if (/^\s*>/.test(line)) {
+      const quoteLines = [];
+      while (index < lines.length && /^\s*>/.test(lines[index])) {
+        quoteLines.push(lines[index].replace(/^\s*>\s?/, ""));
+        index += 1;
+      }
+      const quote = document.createElement("blockquote");
+      renderMarkdown(quoteLines.join("\n"), quote);
+      parent.append(quote);
+      continue;
+    }
+
+    const listMatch = line.match(/^\s*(?:([-+*])|(\d+)\.)\s+(.+)$/);
+    if (listMatch) {
+      const ordered = Boolean(listMatch[2]);
+      const list = document.createElement(ordered ? "ol" : "ul");
+      while (index < lines.length) {
+        const itemMatch = lines[index].match(/^\s*(?:([-+*])|(\d+)\.)\s+(.+)$/);
+        if (!itemMatch || Boolean(itemMatch[2]) !== ordered) break;
+        const item = document.createElement("li");
+        renderInlineMarkdown(itemMatch[3], item);
+        list.append(item);
+        index += 1;
+      }
+      parent.append(list);
+      continue;
+    }
+
+    const paragraphLines = [line.trim()];
+    index += 1;
+    while (index < lines.length && lines[index].trim()
+      && !/^(#{1,6})\s+/.test(lines[index])
+      && !/^```/.test(lines[index].trim())
+      && !/^\s*>/.test(lines[index])
+      && !/^\s*(?:[-+*]|\d+\.)\s+/.test(lines[index])
+      && !/^\s*(---+|___+|\*\*\*+)\s*$/.test(lines[index])) {
+      paragraphLines.push(lines[index].trim());
+      index += 1;
+    }
+    const paragraph = document.createElement("p");
+    renderInlineMarkdown(paragraphLines.join(" "), paragraph);
+    parent.append(paragraph);
+  }
 }
 
 function addMessage(text, role = "assistant") {
   const article = document.createElement("article");
   article.className = `message ${role === "user" ? "user-message" : "assistant-message"}`;
-  const safeText = escapeHtml(text).replace(/\n/g, "<br>");
-  article.innerHTML = role === "user"
-    ? `<div class="message-avatar" aria-hidden="true">NC</div><div class="message-body"><div class="message-author">You <time>Just now</time></div><div class="message-bubble"><p>${safeText}</p></div></div>`
-    : `<div class="message-avatar" aria-hidden="true">✳</div><div class="message-body"><div class="message-author">Ethos <time>Just now</time></div><div class="message-bubble"><p>${safeText}</p></div></div>`;
+  const avatar = document.createElement("div");
+  avatar.className = "message-avatar";
+  avatar.setAttribute("aria-hidden", "true");
+  avatar.textContent = role === "user" ? "NC" : "✳";
+
+  const body = document.createElement("div");
+  body.className = "message-body";
+  const author = document.createElement("div");
+  author.className = "message-author";
+  author.append(document.createTextNode(role === "user" ? "You " : "Ethos "));
+  const time = document.createElement("time");
+  time.textContent = "Just now";
+  author.append(time);
+
+  const bubble = document.createElement("div");
+  bubble.className = "message-bubble";
+  if (role === "user") {
+    const paragraph = document.createElement("p");
+    paragraph.textContent = text;
+    bubble.append(paragraph);
+  } else {
+    bubble.classList.add("markdown-body");
+    renderMarkdown(text, bubble);
+  }
+  body.append(author, bubble);
+  article.append(avatar, body);
   elements.messages.insertBefore(article, elements.typing);
   elements.messages.scrollTop = elements.messages.scrollHeight;
 }

@@ -2,6 +2,8 @@
 
 A responsive, dependency-free frontend concept for a charity investment-analysis assistant. It lets a user describe their mission, draft exclusions and controversy flags, set ESG and risk thresholds, select policy attachments, and review the proposed analysis brief before explicitly approving a demo response.
 
+Assistant messages support basic Markdown formatting: headings, paragraphs, emphasis, strikethrough, lists, blockquotes, fenced code blocks, inline code, horizontal rules, and HTTP(S) links. Message rendering builds DOM nodes rather than inserting Markdown as HTML; links with unsafe protocols are not made clickable.
+
 ## Run locally
 
 From this directory, run:

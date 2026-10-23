@@ -88,7 +88,21 @@ button { color: inherit; }
 .message-bubble { padding: 12px 14px; border: 1px solid #e9eeea; border-radius: 0 10px 10px; background: #fbfcfb; color: #53635a; font-size: 11px; line-height: 1.7; }
 .message-bubble p { margin: 0 0 9px; }
 .message-bubble p:last-child { margin-bottom: 0; }
-.message-bubble em { color: #386b50; font-style: normal; font-weight: 600; }
+.message-bubble em { color: #386b50; }
+.markdown-body > :first-child { margin-top: 0; }
+.markdown-body > :last-child { margin-bottom: 0; }
+.markdown-body h1, .markdown-body h2, .markdown-body h3, .markdown-body h4, .markdown-body h5, .markdown-body h6 { margin: 13px 0 7px; color: #30483a; font: 600 1.1em/1.4 "Manrope", sans-serif; }
+.markdown-body ul, .markdown-body ol { margin: 7px 0 11px; padding-left: 21px; }
+.markdown-body li { padding-left: 2px; }
+.markdown-body li + li { margin-top: 3px; }
+.markdown-body blockquote { margin: 9px 0; padding: 2px 0 2px 11px; border-left: 2px solid #9bbb9f; color: #738279; }
+.markdown-body pre { overflow-x: auto; margin: 9px 0; padding: 10px 12px; border: 1px solid #e7ece7; border-radius: 6px; background: #f3f6f3; font: 10px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; }
+.markdown-body pre code { color: #405449; }
+.markdown-body :not(pre) > code { padding: 1px 4px; border: 1px solid #e8ece8; border-radius: 4px; background: #f2f5f2; color: #4c6854; font: .92em ui-monospace, SFMono-Regular, Menlo, monospace; }
+.markdown-body a { color: #327657; text-decoration: underline; text-decoration-color: #b8d0bc; text-underline-offset: 2px; }
+.markdown-body a:hover { color: #205b45; }
+.markdown-body hr { height: 1px; margin: 11px 0; border: 0; background: #e7ece7; }
+.markdown-body del { color: #819087; }
 .user-message { justify-content: flex-end; margin: 18px 0 0; }
 .user-message .message-body { max-width: 82%; }
 .user-message .message-author { justify-content: flex-end; color: #62766a; }
