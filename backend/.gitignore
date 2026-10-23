@@ -1,0 +1,10 @@
+# Secrets - never upload
+.env
+
+# Local data cache and Python files
+cache/
+__pycache__/
+*.pyc
+.venv/
+venv/
+pipeline.py.bak
