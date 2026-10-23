@@ -11,7 +11,7 @@ st.caption("Turns a charity's values into a $100,000 portfolio, with every decis
            "Educational hackathon project. Not financial advice.")
 
 DEFAULT = ("We are a cancer research charity funding early-detection research. We are investing "
-           "for 5 years and will not invest in weapons. We need moderate risk because we fund grants every year, "
+           "for 5 years and will not invest in weapons or fossil fuels. We need moderate risk because we fund grants every year, "
            "and no single company should be more than 8% of the portfolio.")
 
 policy_text = st.text_area("The charity's investment policy (plain English)", DEFAULT, height=120)
