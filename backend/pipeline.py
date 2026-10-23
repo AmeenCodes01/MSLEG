@@ -140,8 +140,13 @@ def parse_policy(text):
         "an environmental charity must not hold fossil fuels; a children's charity may avoid gambling). "
         "Only infer exclusions with a direct, clear link to the mission. "
         f"Use these tags where they fit: {TAGS}; you may add other short snake_case themes. "
+        "exclude_tags are ONLY kinds of business the charity refuses to own at all (an industry or "
+        "product, e.g. tobacco, weapons, gambling). Concerns about how a company behaves, such as "
+        "controversies over labour practices, product safety, pollution or corruption, are NOT "
+        "exclusions: put them in news_concerns, where they are checked against each company's news. "
         'Return JSON: {"mission": "the charity\'s cause in a few words", '
-        '"exclude_tags": [all excluded themes, stated and inferred], '
+        '"exclude_tags": [business types excluded outright, stated and inferred], '
+        '"news_concerns": [short plain-English conduct concerns to look for in company news], '
         '"inferred_exclusions": [{"theme": "...", "reason": "why the mission implies it"}], '
         '"risk": "low|moderate|high", '
         '"max_position": number between 0.02 and 0.25 (default 0.10), '
@@ -152,6 +157,7 @@ def parse_policy(text):
     p = llm_json(system, text)
     p["exclude_tags"] = sorted({str(t).strip().lower() for t in p.get("exclude_tags", []) if t})
     p.setdefault("inferred_exclusions", [])
+    p["news_concerns"] = [str(c).strip() for c in p.get("news_concerns", []) if str(c).strip()]
     p["risk"] = p.get("risk") if p.get("risk") in SPLITS else "moderate"
     p["max_position"] = float(min(max(float(p.get("max_position", 0.10)), 0.02), 0.25))
     try:
@@ -209,11 +215,12 @@ def ai_industry_screen(industries, policy):
     """AI decides which real API industry names conflict with the charity's values."""
     system = (
         "You are an ethical-investment analyst for a charity. "
-        f"The charity's values: {policy['values_summary']} "
         f"The charity's mission: {policy.get('mission', '')}. "
-        f"Excluded themes: {policy['exclude_tags']}. "
-        "From the list of industry names provided, choose ONLY those whose main business conflicts "
-        "with these values. Do not exclude industries for weak or indirect links. "
+        f"It refuses to own businesses in these themes: {policy['exclude_tags']}. "
+        "From the list of industry names provided, choose ONLY those whose main business falls under "
+        "one of these themes. Do not exclude industries for weak or indirect links. "
+        f"Conduct concerns ({policy.get('news_concerns', [])}) are checked later in each company's "
+        "news; never exclude a whole industry for them. "
         'Return JSON: {"excluded": [{"industry": "exact name from the list", "reason": "short reason"}]}'
     )
     out = llm_json(system, json.dumps(sorted(industries)))
@@ -297,8 +304,9 @@ def judge_news(ticker, name, headlines, policy):
     system = (
         "You are an ethical-investment screening analyst for a charity. "
         f"The charity's values: {policy['values_summary']} "
+        f"The charity specifically asked us to watch for: {policy.get('news_concerns') or 'nothing specific'}. "
         "Using ONLY the headlines provided, decide whether recent news shows conduct that conflicts "
-        "with these values (e.g. labour abuse, environmental damage, fraud, links to excluded sectors). "
+        "with these values or concerns (e.g. labour abuse, environmental damage, fraud, links to excluded sectors). "
         "Routine business news is a pass. "
         'Return JSON: {"verdict": "pass|flag|exclude", "reason": "one or two sentences", '
         '"evidence": "the exact headline you relied on, or null"}'

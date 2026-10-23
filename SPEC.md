@@ -46,6 +46,7 @@ Purna's `backend/api.py` (FastAPI, `POST /api/analyse` on port 8001, see `backen
 {
   "mission": "cancer research",
   "exclude_tags": ["tobacco", "weapons"],
+  "news_concerns": ["child labour controversies", "serious environmental pollution controversies"],
   "inferred_exclusions": [{"theme": "tobacco", "reason": "Tobacco causes cancer..."}],
   "risk": "low | moderate | high",
   "max_position": 0.08,
@@ -54,7 +55,7 @@ Purna's `backend/api.py` (FastAPI, `POST /api/analyse` on port 8001, see `backen
 }
 ```
 
-`risk` falls back to `moderate` if it's invalid, `max_position` is clamped to 2–25%, and `horizon_years` (default 5) is clamped to 3–10. The horizon sets how many years of prices are used; a company needs 90% of that history to be ranked.
+`exclude_tags` are only business types the charity refuses to own (they drive the industry screen). `news_concerns` are conduct worries (labour, safety, pollution…) that are only checked against each company's news; they never exclude a whole industry. `risk` falls back to `moderate` if it's invalid, `max_position` is clamped to 2–25%, and `horizon_years` (default 5) is clamped to 3–10. The horizon sets how many years of prices are used; a company needs 90% of that history to be ranked.
 
 ## Response
 

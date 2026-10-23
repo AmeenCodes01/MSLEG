@@ -16,7 +16,10 @@
   "risk": "moderate",
   "max_position": 0.08,
   "values_summary": "Funds cancer research; avoids tobacco and weapons.",
-  "horizon_years": 5
+  "horizon_years": 5,
+  "news_concerns": [
+   "workers' rights controversies"
+  ]
  },
  "portfolio": [
   {
