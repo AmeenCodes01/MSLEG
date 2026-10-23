@@ -437,7 +437,7 @@ def run(policy_text, progress=None):
         status = {"pass": "included", "flag": "flagged", "exclude": "excluded"}[j["verdict"]]
         rows.append({"ticker": t, "name": name, "industry": profiles[t]["industry"], "status": status,
                      "stage": "AI news screen", "reason": j.get("reason"),
-                     "evidence": j.get("evidence"), "url": url})
+                     "evidence": j.get("evidence"), "url": url, "headlines": len(news)})
         if status != "excluded":
             chosen.append((t, status == "flagged"))
             per_industry[profiles[t]["industry"]] = per_industry.get(profiles[t]["industry"], 0) + 1

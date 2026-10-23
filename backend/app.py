@@ -58,12 +58,24 @@ if res:
             use_container_width=True, hide_index=True)
 
     st.subheader("What the AI excluded or flagged, and why")
-    for _, r in scr[scr.status != "included"].iterrows():
+    for _, r in scr[scr.status.isin(["excluded", "flagged"])].iterrows():
         icon = "🚫" if r.status == "excluded" else "⚠️"
         line = f"{icon} **{r['name']} ({r.ticker})** · _{r.industry}_ · {r.stage}: {r.reason}"
         if r.evidence:
             line += f"  \n  _Evidence:_ {r.evidence}" + (f" ([source]({r.url}))" if r.url else "")
         st.markdown(line)
+
+    news = scr[scr.stage == "AI news screen"]
+    if len(news):
+        n_head = int(news["headlines"].fillna(0).sum()) if "headlines" in news else 0
+        st.subheader("AI news check")
+        st.caption(f"The AI read {n_head} recent headlines across {len(news)} shortlisted companies "
+                   "and judged each against the charity's values.")
+        icons = {"included": "✅", "flagged": "⚠️", "excluded": "🚫"}
+        st.dataframe(
+            news.assign(verdict=news.status.map(lambda s: f"{icons.get(s, '')} {s}"))[
+                ["ticker", "name", "industry", "headlines", "verdict", "reason"]],
+            use_container_width=True, hide_index=True)
 
     st.subheader("Analyst memo for the trustees")
     st.markdown(res["memo"])
