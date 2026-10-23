@@ -32,11 +32,11 @@ Response (shape):
     "mission": "Cancer research and early detection",
     "exclude_tags": ["alcohol", "tobacco", "weapons"],
     "inferred_exclusions": [{ "theme": "tobacco", "reason": "Tobacco causes cancer..." }],
-    "risk": "moderate", "max_position": 0.08, "values_summary": "..."
+    "risk": "moderate", "max_position": 0.08, "horizon_years": 5, "values_summary": "..."
   },
   "summary": {
     "budget": 100000, "companies_scanned": 100, "excluded_count": 4,
-    "risk_free_rate": 0.042, "historical_return_estimate": 0.33, "rate_note": "..."
+    "risk_free_rate": 0.042, "horizon_years": 5, "historical_return_estimate": 0.15, "rate_note": "..."
   },
   "allocation_by_class": { "equity": 0.5, "bond": 0.35, "cash": 0.15 },
   "holdings": [

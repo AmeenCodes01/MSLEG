@@ -50,6 +50,7 @@ def analyse(req: AnalyseRequest):
             "companies_scanned": res["companies_scanned"],
             "excluded_count": int((scr.status == "excluded").sum()),
             "risk_free_rate": res["rf"],
+            "horizon_years": res["policy"].get("horizon_years", 5),
             "historical_return_estimate": res["expected_return"],
             "rate_note": res["rate_note"],
         },
