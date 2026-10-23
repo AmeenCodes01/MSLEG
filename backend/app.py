@@ -1,5 +1,6 @@
 """Streamlit front end. Run: streamlit run app.py"""
 import altair as alt
+import pandas as pd
 import streamlit as st
 
 from pipeline import run
