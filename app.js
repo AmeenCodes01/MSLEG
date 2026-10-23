@@ -303,7 +303,7 @@ function renderProfile() {
 
 function fillProfile(policy) {
   profile.mission = policy.mission || "";
-  profile.exclusions = new Set(policy.exclude_tags || []);
+  profile.exclusions = new Set((policy.exclude_tags || []).map(tag));
   profile.esg = "Not used (no ESG data)";
   profile.risk = policy.risk ? `${policy.risk[0].toUpperCase()}${policy.risk.slice(1)}` : "";
   renderProfile();
@@ -344,6 +344,7 @@ function formatBytes(bytes) {
 const money = (n) => `$${Math.round(n).toLocaleString()}`;
 const pct = (n) => (n == null ? "–" : `${(n * 100).toFixed(1)}%`);
 const cell = (s) => String(s ?? "").replace(/\|/g, "/");
+const tag = (t) => String(t).replace(/_/g, " ");  // policy tags are snake_case; "_" would render as italics
 
 function whyChosen(holding, row) {
   if (!row || row.stage === "fund") return `Fund that gives the portfolio its ${holding.asset_class} share`;
@@ -379,9 +380,9 @@ function resultMarkdown(res) {
     `- **${s.status === "excluded" ? "Excluded" : "Flagged"}: ${cell(s.name)} (${s.ticker})**: ${s.reason}`
     + (s.evidence ? ` Evidence: ${s.url ? `[${s.evidence}](${s.url})` : s.evidence}` : ""));
   const p = res.policy;
-  const inferred = (p.inferred_exclusions || []).map((x) => `- **${cell(x.theme)}**: ${x.reason}`);
+  const inferred = (p.inferred_exclusions || []).map((x) => `- **${cell(tag(x.theme))}**: ${x.reason}`);
   return [
-    `**How I read your policy**: mission *${cell(p.mission)}*; excluding ${(p.exclude_tags || []).join(", ") || "nothing"}; `
+    `**How I read your policy**: mission *${cell(p.mission)}*; excluding ${(p.exclude_tags || []).map(tag).join(", ") || "nothing"}; `
       + `${p.risk} risk; ${p.horizon_years}-year horizon; at most ${pct(p.max_position)} in any one company.`,
     ...(inferred.length ? ["", "**Excluded because of your mission** (not stated in your policy):", "", ...inferred] : []),
     ...(res.macro_context ? ["", macroLine(res.macro_context)] : []),

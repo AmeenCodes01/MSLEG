@@ -376,6 +376,7 @@ def explain(policy, port, screen_df, split, rate_note, macro_context, rf, exp_re
         "Where an exclusion was inferred from the charity's mission rather than stated, say so "
         "and give the reason (from policy.inferred_exclusions). "
         "Do not mention exclusion themes that matched no companies. "
+        "The number of individual companies is the length of individual_stocks; funds are not companies. "
         "Mention the charity's investment horizon (policy.horizon_years) and that all return and "
         "risk figures cover that many years of history. "
         f"Up to {SHORTLIST} companies with the best historical Sharpe ratio were news-checked; those that "
@@ -398,6 +399,8 @@ def explain(policy, port, screen_df, split, rate_note, macro_context, rf, exp_re
         "macro_context": {k: macro_context.get(k) for k in
                           ("status", "score", "regime", "confidence", "stale", "description", "components")},
         "historical_return_estimate": exp_ret,
+        "individual_stocks": [t for t in port.ticker if t not in FUNDS],  # the memo miscounted funds as companies
+        "funds": [t for t in port.ticker if t in FUNDS],
         "holdings": port[["ticker", "name", "industry", "asset_class", "dollars", "annual_return",
                           "volatility", "max_drawdown", "flagged"]].round(4).to_dict("records"),
         "exclusions": screen_df[screen_df.status.isin(["excluded", "flagged"])][
