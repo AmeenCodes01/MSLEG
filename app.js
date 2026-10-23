@@ -123,6 +123,60 @@ function isSafeMarkdownUrl(href) {
   }
 }
 
+function parseMarkdownTableRow(line) {
+  const trimmed = line.trim().replace(/^\|/, "").replace(/\|$/, "");
+  return trimmed.split("|").map((cell) => cell.trim());
+}
+
+function isMarkdownTableDivider(line, columnCount) {
+  const cells = parseMarkdownTableRow(line);
+  return cells.length === columnCount && cells.every((cell) => /^:?-{3,}:?$/.test(cell));
+}
+
+function renderMarkdownTable(lines, parent) {
+  const headers = parseMarkdownTableRow(lines[0]);
+  const dividers = parseMarkdownTableRow(lines[1]);
+  const wrapper = document.createElement("div");
+  wrapper.className = "markdown-table-scroll";
+  const table = document.createElement("table");
+  const head = document.createElement("thead");
+  const headRow = document.createElement("tr");
+
+  headers.forEach((label, index) => {
+    const cell = document.createElement("th");
+    cell.scope = "col";
+    cell.style.textAlign = getTableAlignment(dividers[index]);
+    renderInlineMarkdown(label, cell);
+    headRow.append(cell);
+  });
+  head.append(headRow);
+  table.append(head);
+
+  const body = document.createElement("tbody");
+  lines.slice(2).forEach((line) => {
+    const values = parseMarkdownTableRow(line);
+    const row = document.createElement("tr");
+    headers.forEach((_, index) => {
+      const cell = document.createElement("td");
+      cell.style.textAlign = getTableAlignment(dividers[index]);
+      if (values[index]) renderInlineMarkdown(values[index], cell);
+      row.append(cell);
+    });
+    body.append(row);
+  });
+  table.append(body);
+  wrapper.append(table);
+  parent.append(wrapper);
+}
+
+function getTableAlignment(divider) {
+  const left = divider.startsWith(":");
+  const right = divider.endsWith(":");
+  if (left && right) return "center";
+  if (right) return "right";
+  return "left";
+}
+
 function renderMarkdown(text, parent) {
   const lines = text.replace(/\r\n?/g, "\n").split("\n");
   let index = 0;
@@ -167,6 +221,20 @@ function renderMarkdown(text, parent) {
       continue;
     }
 
+    if (line.includes("|") && index + 1 < lines.length) {
+      const headers = parseMarkdownTableRow(line);
+      if (headers.length > 1 && isMarkdownTableDivider(lines[index + 1], headers.length)) {
+        const tableLines = [line, lines[index + 1]];
+        index += 2;
+        while (index < lines.length && lines[index].includes("|") && lines[index].trim()) {
+          tableLines.push(lines[index]);
+          index += 1;
+        }
+        renderMarkdownTable(tableLines, parent);
+        continue;
+      }
+    }
+
     if (/^\s*>/.test(line)) {
       const quoteLines = [];
       while (index < lines.length && /^\s*>/.test(lines[index])) {
@@ -202,6 +270,9 @@ function renderMarkdown(text, parent) {
       && !/^```/.test(lines[index].trim())
       && !/^\s*>/.test(lines[index])
       && !/^\s*(?:[-+*]|\d+\.)\s+/.test(lines[index])
+      && !(lines[index].includes("|") && index + 1 < lines.length
+        && parseMarkdownTableRow(lines[index]).length > 1
+        && isMarkdownTableDivider(lines[index + 1], parseMarkdownTableRow(lines[index]).length))
       && !/^\s*(---+|___+|\*\*\*+)\s*$/.test(lines[index])) {
       paragraphLines.push(lines[index].trim());
       index += 1;
@@ -312,6 +383,9 @@ function renderProfile() {
 
 function assistantReply(message) {
   const lower = message.toLowerCase();
+  if (/\b(table|tabular)\b/.test(lower)) {
+    return "Here’s a **formatting example** using fictional, illustrative data—not live company research or an investment recommendation:\n\n| Example company | ESG score | Risk | Screen result |\n| :--- | ---: | :---: | :--- |\n| Northstar Renewables | 78/100 | Medium | Passes the example threshold |\n| Harbour Foods | 64/100 | Low | Below the example ESG threshold |\n| Summit Energy | 52/100 | High | Fails example ESG and fossil-fuel screens |\n\n*Scores and companies above are invented for display only.*";
+  }
   const missing = [];
   if (!profile.exclusions.size) missing.push("any industries your charity wants to exclude");
   if (!profile.flags.size) missing.push("controversies you want us to flag");

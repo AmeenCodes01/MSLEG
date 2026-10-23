@@ -99,6 +99,11 @@ button { color: inherit; }
 .markdown-body pre { overflow-x: auto; margin: 9px 0; padding: 10px 12px; border: 1px solid #e7ece7; border-radius: 6px; background: #f3f6f3; font: 10px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; }
 .markdown-body pre code { color: #405449; }
 .markdown-body :not(pre) > code { padding: 1px 4px; border: 1px solid #e8ece8; border-radius: 4px; background: #f2f5f2; color: #4c6854; font: .92em ui-monospace, SFMono-Regular, Menlo, monospace; }
+.markdown-table-scroll { max-width: 100%; margin: 10px 0; overflow-x: auto; border: 1px solid #e6ece6; border-radius: 6px; }
+.markdown-body table { width: 100%; border-collapse: collapse; font-size: 10px; }
+.markdown-body th, .markdown-body td { min-width: 80px; padding: 7px 9px; border-bottom: 1px solid #e9eee9; text-align: left; vertical-align: top; }
+.markdown-body th { color: #486352; background: #f2f6f2; font-weight: 600; }
+.markdown-body tbody tr:last-child td { border-bottom: 0; }
 .markdown-body a { color: #327657; text-decoration: underline; text-decoration-color: #b8d0bc; text-underline-offset: 2px; }
 .markdown-body a:hover { color: #205b45; }
 .markdown-body hr { height: 1px; margin: 11px 0; border: 0; background: #e7ece7; }
