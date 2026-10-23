@@ -69,7 +69,13 @@ The server turns the brief into policy text (`brief_to_policy` in `server.py`), 
 ```
 
 - `portfolio`: one row per holding; `dollars` sums to 100,000. `flagged` holdings are held at half weight.
-- `screen`: every company the pipeline judged. `status` is `included`, `excluded` or `flagged`; `evidence` is the headline the AI relied on.
+- `screen`: **exactly one row per scanned company, each with a `reason`**, plus one row per fund (`stage: "fund"`). `status` is:
+    - `included`: held in the portfolio
+    - `flagged`: held at half weight because of a news concern
+    - `excluded`: dropped by the industry screen or the news check
+    - `not_selected`: allowed, but not picked (`stage` says why: `price history`, `risk ranking`, or `AI news screen` when the portfolio was already full)
+- Optional `screen` fields: `rank` and `ranked_of` (position on return per unit of risk), `news_checked` (number of headlines read). `evidence` is the headline the AI relied on; the pipeline drops it if it isn't one of the real headlines.
+- The chat shows chosen, excluded and flagged companies by default. `not_selected` companies sit behind a "See why the other N weren't chosen" accordion.
 - Missing numbers are `null`, never `NaN`.
 
 ## Who owns what

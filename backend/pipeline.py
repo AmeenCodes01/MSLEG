@@ -295,6 +295,8 @@ def judge_news(ticker, name, headlines, policy):
     out = llm_json(system, user)
     if out.get("verdict") not in ("pass", "flag", "exclude"):
         out["verdict"] = "flag"
+    if out.get("evidence") not in {h["headline"] for h in headlines}:
+        out["evidence"] = None  # never show a headline the model made up
     return out
 
 
@@ -374,8 +376,9 @@ def explain(policy, port, screen_df, split, rate_note, rf, exp_ret, n_scanned):
         "historical_return_estimate": exp_ret,
         "holdings": port[["ticker", "name", "industry", "asset_class", "dollars", "annual_return",
                           "volatility", "max_drawdown", "flagged"]].round(4).to_dict("records"),
-        "exclusions": screen_df[screen_df.status != "included"][
+        "exclusions": screen_df[screen_df.status.isin(["excluded", "flagged"])][
             ["ticker", "name", "industry", "status", "stage", "reason", "evidence"]].to_dict("records"),
+        "not_selected_count": int((screen_df.status == "not_selected").sum()),
     }
     return llm_text(system, json.dumps(payload, default=str))
 
@@ -415,9 +418,25 @@ def run(policy_text, progress=None):
     rf = get_risk_free()
     metrics = compute_metrics(get_prices(allowed + list(FUNDS)), rf)
 
+    # Every company gets exactly one row with a reason, including the ones not picked.
+    def company(t):
+        return {"ticker": t, "name": profiles[t]["name"], "industry": profiles[t]["industry"],
+                "evidence": None, "url": None}
+
+    for t in allowed:
+        if t not in metrics.index:
+            rows.append({**company(t), "status": "not_selected", "stage": "price history",
+                         "reason": "Fewer than 200 days of prices, so its risk can't be judged."})
+
     # Shortlist the best risk-adjusted stocks, then let the AI read their news.
     ranked = metrics.loc[[t for t in allowed if t in metrics.index]].sort_values("sharpe", ascending=False)
+    n_ranked = len(ranked)
     shortlist = list(ranked.index[:SHORTLIST])
+    for rank, t in enumerate(ranked.index[SHORTLIST:], start=SHORTLIST + 1):
+        rows.append({**company(t), "status": "not_selected", "stage": "risk ranking",
+                     "rank": rank, "ranked_of": n_ranked,
+                     "reason": f"Ranked #{rank} of {n_ranked} on return per unit of risk "
+                               f"(Sharpe {ranked.at[t, 'sharpe']:.2f}); only the top {SHORTLIST} were news-checked."})
     chosen = []
     for i, t in enumerate(shortlist):
         name = profiles[t]["name"]
@@ -426,10 +445,13 @@ def run(policy_text, progress=None):
         j = judge_news(t, name, news, policy)
         url = next((h["url"] for h in news if h["headline"] == j.get("evidence")), None)
         status = {"pass": "included", "flag": "flagged", "exclude": "excluded"}[j["verdict"]]
-        rows.append({"ticker": t, "name": name, "industry": profiles[t]["industry"], "status": status,
-                     "stage": "AI news screen", "reason": j.get("reason"),
-                     "evidence": j.get("evidence"), "url": url})
-        if status != "excluded" and len(chosen) < MAX_STOCKS:
+        reason = j.get("reason")
+        if status != "excluded" and len(chosen) >= MAX_STOCKS:
+            status, reason = "not_selected", f"Portfolio already holds {MAX_STOCKS} stocks. News check: {reason}"
+        rows.append({**company(t), "status": status, "stage": "AI news screen", "reason": reason,
+                     "evidence": j.get("evidence"), "url": url,
+                     "rank": i + 1, "ranked_of": n_ranked, "news_checked": len(news)})
+        if status in ("included", "flagged"):
             chosen.append((t, status == "flagged"))
 
     for f in FUNDS:

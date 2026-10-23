@@ -91,6 +91,8 @@ button { color: inherit; }
 .message-bubble em { color: #386b50; }
 .markdown-body > :first-child { margin-top: 0; }
 .markdown-body > :last-child { margin-bottom: 0; }
+.result-details { margin-top: 12px; padding-top: 9px; border-top: 1px solid #e7ece7; }
+.result-details summary { cursor: pointer; color: #30483a; font-weight: 600; }
 .markdown-body h1, .markdown-body h2, .markdown-body h3, .markdown-body h4, .markdown-body h5, .markdown-body h6 { margin: 13px 0 7px; color: #30483a; font: 600 1.1em/1.4 "Manrope", sans-serif; }
 .markdown-body ul, .markdown-body ol { margin: 7px 0 11px; padding-left: 21px; }
 .markdown-body li { padding-left: 2px; }

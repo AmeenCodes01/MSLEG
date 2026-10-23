@@ -314,6 +314,7 @@ function addMessage(text, role = "assistant") {
   article.append(avatar, body);
   elements.messages.insertBefore(article, elements.typing);
   elements.messages.scrollTop = elements.messages.scrollHeight;
+  return bubble;
 }
 
 function chooseTerms(text, options) {
@@ -483,24 +484,59 @@ const money = (n) => `$${Math.round(n).toLocaleString()}`;
 const pct = (n) => (n == null ? "–" : `${(n * 100).toFixed(1)}%`);
 const cell = (s) => String(s ?? "").replace(/\|/g, "/");
 
-function resultMarkdown(res) {
+function whyChosen(holding, row) {
+  if (!row || row.stage === "fund") return `Fund that gives the portfolio its ${holding.asset_class} share`;
+  const news = row.news_checked ? `${row.news_checked} news headlines checked, none conflict` : "no recent news found to check";
+  return `Ranked #${row.rank} of ${row.ranked_of} on return per unit of risk; ${news}`
+    + (holding.flagged ? `. Flagged, so held at half weight: ${row.reason}` : "");
+}
+
+function resultMarkdown(res, brief) {
+  const byTicker = Object.fromEntries(res.screen.map((s) => [s.ticker, s]));
+  const count = (status) => res.screen.filter((s) => s.status === status).length;
+  const stocks = res.portfolio.filter((h) => byTicker[h.ticker]?.stage !== "fund").length;
   const holdings = res.portfolio.map((h) =>
-    `| ${cell(h.name)} (${h.ticker}) | ${h.asset_class} | ${money(h.dollars)} | ${pct(h.annual_return)} | ${pct(h.volatility)} | ${h.flagged ? "Flagged" : ""} |`);
-  const screened = res.screen.filter((s) => s.status !== "included").map((s) =>
+    `| ${cell(h.name)} (${h.ticker}) | ${h.asset_class} | ${money(h.dollars)} | ${pct(h.annual_return)} | ${pct(h.volatility)} | ${cell(whyChosen(h, byTicker[h.ticker]))} |`);
+  const dropped = res.screen.filter((s) => s.status === "excluded" || s.status === "flagged").map((s) =>
     `- **${s.status === "excluded" ? "Excluded" : "Flagged"}: ${cell(s.name)} (${s.ticker})**: ${s.reason}`
     + (s.evidence ? ` Evidence: ${s.url ? `[${s.evidence}](${s.url})` : s.evidence}` : ""));
+  // Only show what the AI added: themes whose first word isn't already in the user's exclusions.
+  const stated = brief.exclusions.join(" ").toLowerCase();
+  const inferred = (res.policy.inferred_exclusions || [])
+    .filter((x) => !stated.includes(String(x.theme).toLowerCase().split(/[_\s]/)[0]))
+    .map((x) => `- **${cell(x.theme)}**: ${x.reason}`);
   return [
-    `**Where the $100,000 goes** (${res.companies_scanned} companies scanned)`,
+    `**${res.companies_scanned} companies scanned**: ${count("excluded")} excluded, ${count("flagged")} flagged, `
+      + `${count("not_selected")} not chosen, ${stocks} chosen, plus ${res.portfolio.length - stocks} funds.`,
+    ...(inferred.length ? ["", "**Also excluded because of your mission** (not stated in your brief):", "", ...inferred] : []),
     "",
-    "| Holding | Type | Amount | Annual return | Volatility | |",
+    "**Where the $100,000 goes, and why**",
+    "",
+    "| Holding | Type | Amount | Annual return | Volatility | Why chosen |",
     "| :--- | :--- | ---: | ---: | ---: | :--- |",
     ...holdings,
     "",
     "**Excluded or flagged, and why**",
     "",
-    ...(screened.length ? screened : ["- Nothing was excluded or flagged."]),
+    ...(dropped.length ? dropped : ["- Nothing was excluded or flagged."]),
     ...(res.notes.length ? ["", ...res.notes.map((n) => `*${n}*`)] : []),
   ].join("\n");
+}
+
+function appendNotChosen(bubble, res) {
+  const rows = res.screen.filter((s) => s.status === "not_selected");
+  if (!rows.length) return;
+  const details = document.createElement("details");
+  details.className = "result-details";
+  const summary = document.createElement("summary");
+  summary.textContent = `See why the other ${rows.length} of ${res.companies_scanned} companies weren’t chosen`;
+  details.append(summary);
+  renderMarkdown([
+    "| Company | Step | Reason |",
+    "| :--- | :--- | :--- |",
+    ...rows.map((s) => `| ${cell(s.name)} (${s.ticker}) | ${cell(s.stage)} | ${cell(s.reason)} |`),
+  ].join("\n"), details);
+  bubble.append(details);
 }
 
 async function runAnalysis() {
@@ -510,15 +546,16 @@ async function runAnalysis() {
   elements.confirm.disabled = true;
   try {
     // Open the page with ?sample=1 to get a canned response without API keys.
+    const brief = await buildBrief();
     const sample = new URLSearchParams(location.search).has("sample") ? "?sample=1" : "";
     const response = await fetch(`/api/run${sample}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(await buildBrief()),
+      body: JSON.stringify(brief),
     });
     const res = await response.json();
     if (!response.ok) throw new Error(res.error || `Server returned ${response.status}`);
-    addMessage(resultMarkdown(res));
+    appendNotChosen(addMessage(resultMarkdown(res, brief)), res);
     addMessage(res.memo);
   } catch (error) {
     addMessage(`The analysis could not run: ${error.message}`);

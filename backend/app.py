@@ -58,7 +58,7 @@ if res:
             use_container_width=True, hide_index=True)
 
     st.subheader("What the AI excluded or flagged, and why")
-    for _, r in scr[scr.status != "included"].iterrows():
+    for _, r in scr[scr.status.isin(["excluded", "flagged"])].iterrows():
         icon = "🚫" if r.status == "excluded" else "⚠️"
         line = f"{icon} **{r['name']} ({r.ticker})** · _{r.industry}_ · {r.stage}: {r.reason}"
         if r.evidence:
