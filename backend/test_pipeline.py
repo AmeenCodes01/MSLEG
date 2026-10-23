@@ -18,7 +18,7 @@ prices.loc[prices.index[:-100], list(SHORT_HISTORY)] = np.nan
 
 p.cached = lambda name, fn: fn()
 p.parse_policy = lambda text: {"mission": "cancer research", "exclude_tags": ["tobacco", "weapons"],
-                               "inferred_exclusions": [], "risk": "moderate", "max_position": 0.08,
+                               "inferred_exclusions": [], "risk": "moderate", "max_position": 0.08, "horizon_years": 3,
                                "values_summary": text}
 p.get_universe = lambda: [{"ticker": t, "name": t} for t in TICKERS]
 p.get_profiles = lambda tickers, progress=None: {
@@ -27,7 +27,7 @@ p.get_profiles = lambda tickers, progress=None: {
     for i, t in enumerate(tickers)}
 p.ai_industry_screen = lambda industries, policy: {}
 p.get_risk_free = lambda: 0.04
-p.get_prices = lambda tickers: prices[tickers]
+p.get_prices = lambda tickers, years=5: prices[tickers]
 p.get_news = lambda t: [{"headline": f"{t} headline", "source": "x", "url": "http://x", "date": "2026-10-01"}]
 p.judge_news = lambda t, name, news, policy: (
     {"verdict": "exclude", "reason": "Scandal.", "evidence": news[0]["headline"]} if t == shortlist_first[0]
@@ -42,7 +42,7 @@ class FakeMacro:
 
 p.WorldBankMacroAnalyzer = FakeMacro
 
-ranked = p.compute_metrics(prices[[t for t in TICKERS if t not in ("T00", "T01")]], 0.04)
+ranked = p.compute_metrics(prices[[t for t in TICKERS if t not in ("T00", "T01")]], 0.04, 3)
 shortlist_first = list(ranked.sort_values("sharpe", ascending=False).index[:1])
 
 out = p.run("We are a cancer charity.")
@@ -53,6 +53,7 @@ assert sorted(companies.ticker) == TICKERS, "every company gets exactly one row"
 assert companies.reason.notna().all()
 assert set(scr[scr.ticker.isin(["T00", "T01"])].status) == {"excluded"}
 assert scr.set_index("ticker").at["T02", "stage"] == "price history"
+assert "3-year horizon" in scr.set_index("ticker").at["T02", "reason"]
 assert scr.set_index("ticker").at[shortlist_first[0], "status"] == "excluded"
 held = set(port.ticker) - set(p.FUNDS)
 assert len(held) == p.MAX_STOCKS

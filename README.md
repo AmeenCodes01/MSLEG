@@ -16,7 +16,7 @@ Then open <http://localhost:8000>, or <http://localhost:8000/?sample=1> for a ca
 
 ## Prototype boundaries
 
-- “Confirm & run analysis” sends the approved brief to `backend/server.py`, which runs `backend/pipeline.py`. Output is educational, not investment advice.
-- Only `.txt` and `.csv` attachments are read; other attachments appear in the review brief by name only.
-- The draft profile uses lightweight keyword matching to demonstrate the interaction. It is not an AI extraction or validation system.
-- A production integration should send only the confirmed brief, show the exact request, keep citations and dates with all evidence, and return uncertainty and exclusions alongside any recommendations.
+- The chat sends the pasted policy text to `backend/server.py`, which runs `backend/pipeline.py`. The AI reads the policy into JSON rules, then the pipeline screens about 100 large US companies, news-checks the top 20 and builds a $100,000 portfolio. Output is educational, not investment advice.
+- Attachments are listed by name only; their contents are not read. Paste the policy as text.
+- World Bank US macro data gives an experimental economic-strength score used to re-rank news-checked companies (50% lower volatility, 50% sector fit). It's an unvalidated heuristic, not a forecast, and has not been backtested.
+- Every scanned company gets a reason for being chosen, excluded, flagged or not chosen. See [SPEC.md](SPEC.md).

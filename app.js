@@ -382,7 +382,7 @@ function resultMarkdown(res) {
   const inferred = (p.inferred_exclusions || []).map((x) => `- **${cell(x.theme)}**: ${x.reason}`);
   return [
     `**How I read your policy**: mission *${cell(p.mission)}*; excluding ${(p.exclude_tags || []).join(", ") || "nothing"}; `
-      + `${p.risk} risk; at most ${pct(p.max_position)} in any one company.`,
+      + `${p.risk} risk; ${p.horizon_years}-year horizon; at most ${pct(p.max_position)} in any one company.`,
     ...(inferred.length ? ["", "**Excluded because of your mission** (not stated in your policy):", "", ...inferred] : []),
     ...(res.macro_context ? ["", macroLine(res.macro_context)] : []),
     "",

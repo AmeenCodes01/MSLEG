@@ -15,7 +15,8 @@
   ],
   "risk": "moderate",
   "max_position": 0.08,
-  "values_summary": "Funds cancer research; avoids tobacco and weapons."
+  "values_summary": "Funds cancer research; avoids tobacco and weapons.",
+  "horizon_years": 5
  },
  "portfolio": [
   {
@@ -499,7 +500,7 @@
    "industry": "Sample industry",
    "status": "not_selected",
    "stage": "price history",
-   "reason": "Fewer than 200 days of prices, so its risk can't be judged.",
+   "reason": "Fewer than 1134 trading days of prices (90% of the 5-year horizon), so its risk can't be judged.",
    "evidence": null,
    "url": null
   },
