@@ -406,6 +406,8 @@ def explain(policy, port, screen_df, split, rate_note, macro_context, rf, exp_re
         "and give the reason (from policy.inferred_exclusions). "
         "Do not mention exclusion themes that matched no companies. "
         "The number of individual companies is the length of individual_stocks; funds are not companies. "
+        "We did not use ESG scores for any company. If you mention the ESG funds, say their ESG screening "
+        "is done by the fund provider, not by us; never call our stock picks ESG-scored or ESG-rated. "
         "Mention the charity's investment horizon (policy.horizon_years) and that all return and "
         "risk figures cover that many years of history. "
         f"Up to {SHORTLIST} companies with the best historical Sharpe ratio were news-checked; those that "
