@@ -41,8 +41,8 @@ USE_CACHE = os.getenv("USE_CACHE", "0") == "1"
 
 UNIVERSE_SIZE = 100      # how many of the largest US companies to scan
 MAX_NEWS_CHECKS = 20     # most stocks the AI news screen will read (keeps the run fast)
-MAX_STOCKS = 12          # stocks kept in the final portfolio
-MAX_PER_INDUSTRY = 2     # diversification: at most this many stocks from one industry
+MAX_STOCKS = 5           # stocks kept in the final portfolio
+MAX_PER_INDUSTRY = 1     # diversification: at most one stock per industry
 
 TAGS = ["fossil_fuels", "tobacco", "weapons", "gambling", "alcohol"]
 # No fixed exclusions: what a charity avoids depends on its mission
@@ -386,8 +386,8 @@ def explain(policy, port, screen_df, split, rate_note, macro_context,
         "score. The macro score is a descriptive heuristic, not a probability or forecast; "
         "the sector match is broad, not company revenue exposure. This ranking has not been "
         "backtested. Up to 20 news-screen candidates were preselected by historical Sharpe, "
-        "so the ranking does not cover every company in the universe. At most two selected "
-        "stocks per industry. The final shortlist uses this combined ranking, not the "
+        "so the ranking does not cover every company in the universe. At most one selected "
+        "stock per industry. The final shortlist uses this combined ranking, not the "
         "preselection Sharpe order. Include macro score x, source observation years, and data "
         "recency/confidence. If macro data is stale or unavailable, call the macro factor "
         "neutral; do not present it as observed. Do not mention exclusion themes that matched no companies. "
@@ -545,7 +545,7 @@ def run(policy_text, progress=None):
 
 if __name__ == "__main__":
     demo = ("We are a cancer research charity funding early-detection research. We are investing "
-            "for 5 years and will not invest in weapons. We need moderate risk because we fund grants every year, "
+            "for 5 years and will not invest in weapons or fossil fuels. We need moderate risk because we fund grants every year, "
             "and no single company should be more than 8% of the portfolio.")
     out = run(demo, progress=lambda f, m: print(f"[{f:.0%}] {m}"))
     print("\nScanned", out["companies_scanned"], "companies")
