@@ -1,6 +1,6 @@
 """Bridge between the static frontend and pipeline.py. Standard library only.
 Run from the repo root:  python3 backend/server.py   then open http://localhost:8000
-POST /api/run with the confirmed brief (see SPEC.md). Add ?sample=1 for a canned response."""
+POST /api/run with {"policy": "<text>"} (see SPEC.md). Add ?sample=1 for a canned response."""
 import json
 import os
 import pathlib
@@ -16,40 +16,26 @@ sys.path.insert(0, str(BACKEND))
 # Only the frontend is served; never .env or other files in the repo.
 STATIC = {"/": "index.html", "/index.html": "index.html", "/app.js": "app.js", "/styles.css": "styles.css"}
 SAMPLE = BACKEND / "sample_data" / "sample_response.json"
-RISK = {"Conservative": "low", "Balanced": "moderate", "Growth-oriented": "high"}
-
-
-def brief_to_policy(brief):
-    """Turn the frontend's structured brief into the plain-English policy pipeline.run() expects."""
-    parts = []
-    if brief.get("mission"):
-        parts.append(f"Our mission: {brief['mission']}")
-    if brief.get("exclusions"):
-        parts.append("We will not invest in: " + ", ".join(brief["exclusions"]) + ".")
-    if brief.get("flags"):
-        parts.append("Flag any company with recent news about: " + ", ".join(brief["flags"]) + ".")
-    risk = RISK.get(brief.get("risk"), brief.get("risk"))
-    if risk:
-        parts.append(f"Our risk tolerance is {risk}.")
-    if brief.get("notes"):
-        parts.append(brief["notes"])
-    return "\n".join(parts)
+MAX_POLICY_CHARS = 20_000
 
 
 def records(df):
     return df.astype(object).where(df.notna(), None).to_dict("records")
 
 
-def to_json(out, brief):
-    notes = []
-    if brief.get("min_esg") is not None:
-        notes.append(f"Minimum ESG score {brief['min_esg']} was not applied: the backend has no ESG data source yet.")
+def to_json(out):
+    scr = out["screen"]
+    checked = scr[scr.stage == "AI news screen"]
+    notes = ["No ESG scores were used: the backend has no ESG data source yet."]
+    if len(checked) and checked["news_checked"].fillna(0).sum() == 0:
+        notes.append("No news was found for any company, so the news check passed everyone. "
+                     "Check FINNHUB_API_KEY in backend/.env.")
     return {
         "sample": False,
         "memo": out["memo"],
         "policy": out["policy"],
         "portfolio": records(out["portfolio"]),
-        "screen": records(out["screen"]),
+        "screen": records(scr),
         "split": out["split"],
         "rate_note": out["rate_note"],
         "expected_return": out["expected_return"],
@@ -59,17 +45,12 @@ def to_json(out, brief):
     }
 
 
-def validate(brief):
-    if not isinstance(brief, dict):
-        return "Brief must be a JSON object."
-    for key in ("exclusions", "flags"):
-        if not isinstance(brief.get(key, []), list):
-            return f"'{key}' must be a list."
-    esg = brief.get("min_esg")
-    if esg is not None and not (isinstance(esg, (int, float)) and 0 <= esg <= 100):
-        return "'min_esg' must be a number from 0 to 100, or null."
-    if not brief_to_policy(brief).strip():
-        return "The brief is empty."
+def validate(body):
+    policy = body.get("policy") if isinstance(body, dict) else None
+    if not isinstance(policy, str) or not policy.strip():
+        return "Send {\"policy\": \"...\"} with the charity's policy as text."
+    if len(policy) > MAX_POLICY_CHARS:
+        return f"Policy is too long: keep it under {MAX_POLICY_CHARS:,} characters."
     return None
 
 
@@ -87,17 +68,17 @@ class Handler(SimpleHTTPRequestHandler):
             return self.send_error(404)
         try:
             length = int(self.headers.get("Content-Length", 0))
-            brief = json.loads(self.rfile.read(length) or b"{}")
+            body = json.loads(self.rfile.read(length) or b"{}")
         except (ValueError, json.JSONDecodeError):
             return self.reply(400, {"error": "Body must be valid JSON."})
-        problem = validate(brief)
+        problem = validate(body)
         if problem:
             return self.reply(400, {"error": problem})
         if "sample=1" in query.split("&"):
             return self.reply(200, json.loads(SAMPLE.read_text()))
         try:
             from pipeline import run
-            return self.reply(200, to_json(run(brief_to_policy(brief)), brief))
+            return self.reply(200, to_json(run(body["policy"])))
         except Exception as e:
             traceback.print_exc()
             return self.reply(500, {"error": f"{type(e).__name__}: {e}"})

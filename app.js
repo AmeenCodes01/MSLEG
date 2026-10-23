@@ -7,42 +7,6 @@ const profile = {
   attachments: [],
 };
 
-const exclusionOptions = [
-  ["fossil fuel", "Fossil fuel expansion"],
-  ["coal", "Fossil fuel expansion"],
-  ["oil and gas", "Fossil fuel expansion"],
-  ["weapons", "Weapons & defence"],
-  ["armaments", "Weapons & defence"],
-  ["tobacco", "Tobacco"],
-  ["gambling", "Gambling"],
-  ["alcohol", "Alcohol"],
-  ["animal testing", "Animal testing"],
-  ["adult entertainment", "Adult entertainment"],
-  ["nuclear", "Nuclear energy"],
-];
-
-const flagOptions = [
-  ["greenwashing", "Greenwashing"],
-  ["labor", "Workers’ rights"],
-  ["workers", "Workers’ rights"],
-  ["human rights", "Human rights"],
-  ["modern slavery", "Modern slavery"],
-  ["deforestation", "Deforestation & biodiversity"],
-  ["biodiversity", "Deforestation & biodiversity"],
-  ["indigenous", "Indigenous rights"],
-  ["water scarcity", "Water stewardship"],
-  ["water use", "Water stewardship"],
-  ["pollution", "Pollution & product harms"],
-  ["corruption", "Corruption & tax conduct"],
-  ["tax avoidance", "Corruption & tax conduct"],
-  ["privacy", "Privacy & surveillance"],
-  ["surveillance", "Privacy & surveillance"],
-  ["governance", "Governance & lobbying"],
-  ["lobbying", "Governance & lobbying"],
-  ["controversies", "Material controversies"],
-  ["animal welfare", "Animal welfare"],
-];
-
 const elements = {
   form: document.querySelector("#chat-form"),
   input: document.querySelector("#message-input"),
@@ -57,12 +21,6 @@ const elements = {
   flags: document.querySelector("#flag-tags"),
   esg: document.querySelector("#esg-value"),
   risk: document.querySelector("#risk-value"),
-  reviewButton: document.querySelector("#review-button"),
-  reviewHint: document.querySelector(".review-hint"),
-  dialog: document.querySelector("#review-dialog"),
-  summary: document.querySelector("#review-summary"),
-  consent: document.querySelector("#consent-checkbox"),
-  confirm: document.querySelector("#confirm-button"),
 };
 
 function renderInlineMarkdown(text, parent, depth = 0) {
@@ -317,38 +275,6 @@ function addMessage(text, role = "assistant") {
   return bubble;
 }
 
-function chooseTerms(text, options) {
-  const lower = text.toLowerCase();
-  return options.filter(([term]) => lower.includes(term)).map(([, label]) => label);
-}
-
-function updateProfile(message) {
-  const lower = message.toLowerCase();
-  const exclusions = chooseTerms(lower, exclusionOptions);
-  const flags = chooseTerms(lower, flagOptions);
-  exclusions.forEach((item) => profile.exclusions.add(item));
-  flags.forEach((item) => profile.flags.add(item));
-
-  if (/(mission|charity|trust|community|values|principles|impact|care about|stand for)/i.test(message)
-      && !profile.mission) {
-    profile.mission = message.trim();
-  }
-
-  const esgMatch = lower.match(/(?:esg(?: score)?|minimum(?: score)?|threshold)[^\d]{0,20}(\d{1,3})|(\d{1,3})\s*(?:\/\s*100|out of 100)/);
-  if (esgMatch) {
-    const score = Number(esgMatch[1] || esgMatch[2]);
-    if (score <= 100) profile.esg = `${score}/100`;
-  } else if (/(high|strict|strong)\s+(?:minimum\s+)?esg|high esg/i.test(lower)) {
-    profile.esg = "70/100 (suggested)";
-  }
-
-  if (/\b(conservative|low)\s+risk\b/.test(lower)) profile.risk = "Conservative";
-  else if (/\b(moderate|balanced|medium)\s+risk\b/.test(lower)) profile.risk = "Balanced";
-  else if (/\b(aggressive|high)\s+risk\b/.test(lower)) profile.risk = "Growth-oriented";
-
-  renderProfile();
-}
-
 function renderTags(container, items, className) {
   container.replaceChildren();
   if (!items.length) {
@@ -373,43 +299,20 @@ function renderProfile() {
   renderTags(elements.flags, [...profile.flags], "flag");
   elements.esg.textContent = profile.esg || "Not set";
   elements.risk.textContent = profile.risk || "Not set";
-
-  const hasCriteria = Boolean(profile.mission || profile.exclusions.size || profile.flags.size
-    || profile.esg || profile.risk || profile.attachments.length);
-  elements.reviewButton.disabled = !hasCriteria;
-  elements.reviewHint.textContent = hasCriteria
-    ? "You can review and edit your brief before analysis."
-    : "Add at least one value or criterion to continue.";
 }
 
-function assistantReply(message) {
-  const lower = message.toLowerCase();
-  if (/\b(table|tabular)\b/.test(lower)) {
-    return "Here’s a **formatting example** using fictional, illustrative data—not live company research or an investment recommendation:\n\n| Example company | ESG score | Risk | Screen result |\n| :--- | ---: | :---: | :--- |\n| Northstar Renewables | 78/100 | Medium | Passes the example threshold |\n| Harbour Foods | 64/100 | Low | Below the example ESG threshold |\n| Summit Energy | 52/100 | High | Fails example ESG and fossil-fuel screens |\n\n*Scores and companies above are invented for display only.*";
-  }
-  const missing = [];
-  if (!profile.exclusions.size) missing.push("any industries your charity wants to exclude");
-  if (!profile.flags.size) missing.push("controversies you want us to flag");
-  if (!profile.esg) missing.push("a minimum ESG score (if you use one)");
-  if (!profile.risk) missing.push("your preferred risk level");
-  if (missing.length) {
-    return `I’ve added what I could identify to your draft. To make the brief more useful, would you like to tell me ${missing.join(", ")}? You can leave any of these unset and review the brief whenever you’re ready.`;
-  }
-  if (lower.includes("greenwashing")) {
-    return "Greenwashing is on your flag list. A useful screen can compare marketing claims with emissions data, transition plans, capital spending, regulatory findings, and credible third-party reporting. I’ve captured that as a flag, not a proven finding.";
-  }
-  return "Thanks, I’ve updated the draft profile on the right. Please check whether I interpreted your criteria correctly. When you’re ready, choose “Review analysis brief” to see the exact data categories and approve the demo analysis.";
+function fillProfile(policy) {
+  profile.mission = policy.mission || "";
+  profile.exclusions = new Set(policy.exclude_tags || []);
+  profile.esg = "Not used (no ESG data)";
+  profile.risk = policy.risk ? `${policy.risk[0].toUpperCase()}${policy.risk.slice(1)}` : "";
+  renderProfile();
 }
 
 function handleMessage(message) {
   addMessage(message, "user");
-  updateProfile(message);
   elements.suggestions.hidden = true;
-  elements.typing.hidden = false;
-  window.setTimeout(() => {
-    elements.typing.hidden = true;
-    addMessage(assistantReply(message));
-  }, 550);
+  runAnalysis(message);
 }
 
 function renderAttachments() {
@@ -438,48 +341,6 @@ function formatBytes(bytes) {
   return `${(bytes / 1024).toFixed(1)} KB`;
 }
 
-function showReview() {
-  const rows = [
-    ["Mission & principles", profile.mission || "Not specified"],
-    ["Industry exclusions", [...profile.exclusions].join(", ") || "None specified"],
-    ["Controversy flags", [...profile.flags].join(", ") || "None specified"],
-    ["Minimum ESG score", profile.esg || "Not specified"],
-    ["Risk tolerance", profile.risk || "Not specified"],
-    ["Attachments", profile.attachments.map((file) => file.name).join(", ") || "None"],
-  ];
-  elements.summary.replaceChildren();
-  rows.forEach(([label, value]) => {
-    const row = document.createElement("div");
-    row.className = "summary-row";
-    const heading = document.createElement("strong");
-    heading.textContent = label;
-    const content = document.createElement("span");
-    content.className = label === "Attachments" ? "summary-files" : "";
-    content.textContent = value;
-    row.append(heading, content);
-    elements.summary.append(row);
-  });
-  elements.consent.checked = false;
-  elements.confirm.disabled = true;
-  elements.dialog.showModal();
-}
-
-async function buildBrief() {
-  // Only text files are read; PDF/DOC attachments are listed by name only.
-  const texts = await Promise.all(profile.attachments
-    .filter((file) => /\.(txt|csv)$/i.test(file.name))
-    .map((file) => file.text()));
-  const esg = parseInt(profile.esg, 10);
-  return {
-    mission: profile.mission,
-    exclusions: [...profile.exclusions],
-    flags: [...profile.flags],
-    min_esg: Number.isNaN(esg) ? null : esg,
-    risk: profile.risk || null,
-    notes: texts.join("\n\n"),
-  };
-}
-
 const money = (n) => `$${Math.round(n).toLocaleString()}`;
 const pct = (n) => (n == null ? "–" : `${(n * 100).toFixed(1)}%`);
 const cell = (s) => String(s ?? "").replace(/\|/g, "/");
@@ -491,7 +352,7 @@ function whyChosen(holding, row) {
     + (holding.flagged ? `. Flagged, so held at half weight: ${row.reason}` : "");
 }
 
-function resultMarkdown(res, brief) {
+function resultMarkdown(res) {
   const byTicker = Object.fromEntries(res.screen.map((s) => [s.ticker, s]));
   const count = (status) => res.screen.filter((s) => s.status === status).length;
   const stocks = res.portfolio.filter((h) => byTicker[h.ticker]?.stage !== "fund").length;
@@ -500,15 +361,15 @@ function resultMarkdown(res, brief) {
   const dropped = res.screen.filter((s) => s.status === "excluded" || s.status === "flagged").map((s) =>
     `- **${s.status === "excluded" ? "Excluded" : "Flagged"}: ${cell(s.name)} (${s.ticker})**: ${s.reason}`
     + (s.evidence ? ` Evidence: ${s.url ? `[${s.evidence}](${s.url})` : s.evidence}` : ""));
-  // Only show what the AI added: themes whose first word isn't already in the user's exclusions.
-  const stated = brief.exclusions.join(" ").toLowerCase();
-  const inferred = (res.policy.inferred_exclusions || [])
-    .filter((x) => !stated.includes(String(x.theme).toLowerCase().split(/[_\s]/)[0]))
-    .map((x) => `- **${cell(x.theme)}**: ${x.reason}`);
+  const p = res.policy;
+  const inferred = (p.inferred_exclusions || []).map((x) => `- **${cell(x.theme)}**: ${x.reason}`);
   return [
+    `**How I read your policy**: mission *${cell(p.mission)}*; excluding ${(p.exclude_tags || []).join(", ") || "nothing"}; `
+      + `${p.risk} risk; at most ${pct(p.max_position)} in any one company.`,
+    ...(inferred.length ? ["", "**Excluded because of your mission** (not stated in your policy):", "", ...inferred] : []),
+    "",
     `**${res.companies_scanned} companies scanned**: ${count("excluded")} excluded, ${count("flagged")} flagged, `
       + `${count("not_selected")} not chosen, ${stocks} chosen, plus ${res.portfolio.length - stocks} funds.`,
-    ...(inferred.length ? ["", "**Also excluded because of your mission** (not stated in your brief):", "", ...inferred] : []),
     "",
     "**Where the $100,000 goes, and why**",
     "",
@@ -539,28 +400,34 @@ function appendNotChosen(bubble, res) {
   bubble.append(details);
 }
 
-async function runAnalysis() {
-  elements.dialog.close();
-  addMessage("Your brief is confirmed. Running the analysis now; a live run can take a few minutes.");
+let running = false;
+
+async function runAnalysis(policy) {
+  if (running) {
+    addMessage("I’m still working on the last policy. Please wait for it to finish.");
+    return;
+  }
+  running = true;
+  addMessage("Reading your policy and running the analysis; a live run can take a few minutes.");
   elements.typing.hidden = false;
-  elements.confirm.disabled = true;
   try {
     // Open the page with ?sample=1 to get a canned response without API keys.
-    const brief = await buildBrief();
     const sample = new URLSearchParams(location.search).has("sample") ? "?sample=1" : "";
     const response = await fetch(`/api/run${sample}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(brief),
+      body: JSON.stringify({ policy }),
     });
     const res = await response.json();
     if (!response.ok) throw new Error(res.error || `Server returned ${response.status}`);
-    appendNotChosen(addMessage(resultMarkdown(res, brief)), res);
+    fillProfile(res.policy);
+    appendNotChosen(addMessage(resultMarkdown(res)), res);
     addMessage(res.memo);
   } catch (error) {
     addMessage(`The analysis could not run: ${error.message}`);
   } finally {
     elements.typing.hidden = true;
+    running = false;
   }
 }
 
@@ -601,11 +468,5 @@ elements.fileInput.addEventListener("change", () => {
   renderProfile();
   elements.fileInput.value = "";
 });
-
-elements.reviewButton.addEventListener("click", showReview);
-elements.consent.addEventListener("change", () => {
-  elements.confirm.disabled = !elements.consent.checked;
-});
-elements.confirm.addEventListener("click", runAnalysis);
 
 renderProfile();

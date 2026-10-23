@@ -35,7 +35,7 @@
           <span class="note-icon" aria-hidden="true">✳</span>
           <div>
             <strong>Built for your mission</strong>
-            <p>Your values stay in control. Review every criterion before analysis.</p>
+            <p>Your values stay in control. Every choice comes with a reason.</p>
           </div>
         </div>
 
@@ -62,9 +62,9 @@
           <div class="intro">
             <div class="intro-kicker"><span class="sparkle" aria-hidden="true">✳</span> YOUR ETHICAL INVESTMENT DESK</div>
             <h1>Invest in a way that<br><span>reflects your values.</span></h1>
-            <p>Tell me what matters to your charity. I’ll help shape an investment brief for your review before any analysis begins.</p>
+            <p>Paste your charity’s investment policy. I’ll build a $100,000 portfolio and explain every company I chose or left out.</p>
             <div class="intro-meta">
-              <span><span class="meta-icon" aria-hidden="true">◉</span> Human-reviewed decisions</span>
+              <span><span class="meta-icon" aria-hidden="true">◉</span> Every decision explained</span>
               <span><span class="meta-icon" aria-hidden="true">⌁</span> No action without your approval</span>
             </div>
           </div>
@@ -84,16 +84,16 @@
                   <div class="message-author">Ethos <time>Just now</time></div>
                   <div class="message-bubble">
                     <p>Hi Norbert. Let’s start with what your charity stands for. What would make an investment a <em>no</em> for Harbour Community Trust?</p>
-                    <p>You can describe your principles, name industries to exclude, or attach your investment policy. I’ll turn that into a draft brief for you to check.</p>
+                    <p>Paste your investment policy as text, or pick an example below. I’ll read it, screen 100 companies and explain every decision.</p>
                   </div>
                 </div>
               </article>
 
               <div class="suggestion-label">NOT SURE WHERE TO START?</div>
               <div class="suggestions" id="suggestions">
-                <button class="suggestion-chip" type="button" data-prompt="We want to avoid fossil fuel expansion and companies involved in weapons.">◉ <span>Set our exclusions</span></button>
-                <button class="suggestion-chip" type="button" data-prompt="We care about greenwashing, workers’ rights, and transparent governance.">✳ <span>Choose ethical flags</span></button>
-                <button class="suggestion-chip" type="button" data-prompt="Help me define a balanced risk level and minimum ESG score.">⌁ <span>Set risk & ESG criteria</span></button>
+                <button class="suggestion-chip" type="button" data-prompt="We are a cancer research charity funding early-detection research. We will not invest in weapons. We need moderate risk because we fund grants every year, and no single company should be more than 8% of the portfolio.">◉ <span>Cancer charity example</span></button>
+                <button class="suggestion-chip" type="button" data-prompt="We are an environmental charity protecting forests and rivers. We will not invest in fossil fuels or weapons. We can accept moderate risk, with no more than 10% in any one company.">✳ <span>Environmental charity example</span></button>
+                <button class="suggestion-chip" type="button" data-prompt="We are a children's education charity. We avoid gambling, alcohol and tobacco. Our grants are paid every term, so we need low risk.">⌁ <span>Children’s charity example</span></button>
               </div>
 
               <div class="typing-indicator" id="typing-indicator" hidden><span></span><span></span><span></span><span>Ethos is thinking</span></div>
@@ -101,7 +101,7 @@
 
             <form class="composer" id="chat-form">
               <label class="sr-only" for="message-input">Message Ethos</label>
-              <textarea id="message-input" rows="1" placeholder="Share your charity’s values or ask a question…" required></textarea>
+              <textarea id="message-input" rows="1" placeholder="Paste your charity’s investment policy…" required></textarea>
               <div class="composer-toolbar">
                 <div class="composer-tools">
                   <input class="sr-only" id="file-input" type="file" accept=".pdf,.doc,.docx,.txt,.csv" multiple>
@@ -125,7 +125,7 @@
           </div>
           <span class="draft-status"><span></span> DRAFT</span>
         </div>
-        <p class="profile-description">Your criteria take shape as we talk. Nothing is shared until you approve it.</p>
+        <p class="profile-description">Filled in from how the AI read your policy.</p>
 
         <section class="profile-section">
           <div class="section-title"><span class="section-icon mission-icon">✳</span><h3>Mission & principles</h3></div>
@@ -156,29 +156,9 @@
           <div class="data-row"><span class="data-check">✓</span><span>Ethical controversy scan</span><span class="data-state">Planned</span></div>
         </section>
 
-        <button class="review-button" id="review-button" type="button" disabled><span>Review analysis brief</span><span aria-hidden="true">→</span></button>
-        <p class="review-hint">Add at least one value or criterion to continue.</p>
-        <div class="source-note"><span aria-hidden="true">⛨</span><span>Your criteria are reviewed before being used. Only the confirmed brief is sent for analysis.</span></div>
+        <div class="source-note"><span aria-hidden="true">⛨</span><span>Your policy text is sent to the analysis backend and read by AI. Educational project, not financial advice.</span></div>
       </aside>
     </div>
 
-    <dialog class="review-dialog" id="review-dialog" aria-labelledby="dialog-title">
-      <form method="dialog" class="dialog-form">
-        <button class="dialog-close" aria-label="Close review" value="cancel">×</button>
-        <span class="panel-eyebrow">FINAL CHECK</span>
-        <h2 id="dialog-title">Review your analysis brief</h2>
-        <p class="dialog-intro">Confirm the criteria and data categories below. Only this approved brief is sent to the analysis backend.</p>
-        <div class="review-summary" id="review-summary"></div>
-        <div class="data-consent">
-          <strong>Data requested for analysis</strong>
-          <p>Company and market data, macroeconomic indicators, public news and sentiment, and a scan for ethical controversies. This demo includes attachment names only; file contents are not read or uploaded.</p>
-        </div>
-        <label class="consent-check"><input id="consent-checkbox" type="checkbox"><span>I have reviewed this brief and approve an analysis using these criteria.</span></label>
-        <div class="dialog-actions">
-          <button class="secondary-button" value="cancel">Keep editing</button>
-          <button class="confirm-button" id="confirm-button" type="button" disabled>Confirm & run analysis <span aria-hidden="true">→</span></button>
-        </div>
-      </form>
-    </dialog>
   </body>
 </html>
