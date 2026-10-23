@@ -1,0 +1,46 @@
+{
+  "sample": true,
+  "memo": "## Recommendation\n\n*Sample response: illustrative values, not a real analysis.*\n\nWe recommend a balanced $100,000 portfolio that excludes tobacco and weapons makers and holds 6 companies alongside ESG equity, bond and cash funds. It suits a cancer research charity that funds grants every year and needs moderate risk.\n\n## How the $100,000 is split\n\n- **Equities: $50,000**, split across 6 companies and 3 ESG equity funds\n- **Bonds: $35,000**\n- **Cash: $15,000**, which includes 5% moved from equities because the 3-month Treasury yield is 4.2%\n\n## What we excluded\n\nTobacco (Philip Morris, Altria) and weapons makers (Lockheed Martin, RTX, General Dynamics, Northrop Grumman), based on each company's official industry. Amazon is held at half weight because of a workers' rights headline.\n\n## Key risks\n\nPast returns do not predict future returns, and bond funds can fall when interest rates rise.\n\n*Educational hackathon project. Not financial advice.*",
+  "policy": {
+    "mission": "cancer research",
+    "exclude_tags": ["tobacco", "weapons"],
+    "inferred_exclusions": [
+      {"theme": "tobacco", "reason": "Tobacco is a leading cause of cancer, so holding it would conflict with the mission."}
+    ],
+    "risk": "moderate",
+    "max_position": 0.08,
+    "values_summary": "Funds cancer research; avoids tobacco and weapons."
+  },
+  "portfolio": [
+    {"ticker": "EAGG", "name": "iShares ESG Aware U.S. Aggregate Bond ETF", "industry": "Intermediate Core Bond", "asset_class": "bond", "weight": 0.14, "dollars": 14000, "flagged": false, "annual_return": 0.021, "volatility": 0.061, "max_drawdown": -0.092, "sharpe": -0.34},
+    {"ticker": "SUSB", "name": "iShares ESG 1-5 Year USD Corporate Bond ETF", "industry": "Short-Term Bond", "asset_class": "bond", "weight": 0.11, "dollars": 11000, "flagged": false, "annual_return": 0.034, "volatility": 0.028, "max_drawdown": -0.031, "sharpe": -0.29},
+    {"ticker": "IEF", "name": "iShares 7-10 Year Treasury Bond ETF", "industry": "Long Government", "asset_class": "bond", "weight": 0.10, "dollars": 10000, "flagged": false, "annual_return": 0.012, "volatility": 0.074, "max_drawdown": -0.118, "sharpe": -0.41},
+    {"ticker": "SHV", "name": "iShares Short Treasury Bond ETF", "industry": "Ultrashort Bond", "asset_class": "cash", "weight": 0.08, "dollars": 8000, "flagged": false, "annual_return": 0.048, "volatility": 0.003, "max_drawdown": -0.001, "sharpe": 2.0},
+    {"ticker": "MSFT", "name": "Microsoft Corporation", "industry": "Software - Infrastructure", "asset_class": "equity", "weight": 0.07, "dollars": 7000, "flagged": false, "annual_return": 0.162, "volatility": 0.231, "max_drawdown": -0.214, "sharpe": 0.52},
+    {"ticker": "ESGU", "name": "iShares ESG Aware MSCI USA ETF", "industry": "Large Blend", "asset_class": "equity", "weight": 0.07, "dollars": 7000, "flagged": false, "annual_return": 0.118, "volatility": 0.162, "max_drawdown": -0.171, "sharpe": 0.47},
+    {"ticker": "BIL", "name": "SPDR Bloomberg 1-3 Month T-Bill ETF", "industry": "Ultrashort Bond", "asset_class": "cash", "weight": 0.07, "dollars": 7000, "flagged": false, "annual_return": 0.049, "volatility": 0.002, "max_drawdown": 0.0, "sharpe": 3.5},
+    {"ticker": "JNJ", "name": "Johnson & Johnson", "industry": "Drug Manufacturers - General", "asset_class": "equity", "weight": 0.06, "dollars": 6000, "flagged": false, "annual_return": 0.041, "volatility": 0.158, "max_drawdown": -0.183, "sharpe": -0.01},
+    {"ticker": "PG", "name": "The Procter & Gamble Company", "industry": "Household & Personal Products", "asset_class": "equity", "weight": 0.06, "dollars": 6000, "flagged": false, "annual_return": 0.072, "volatility": 0.164, "max_drawdown": -0.155, "sharpe": 0.18},
+    {"ticker": "SUSA", "name": "iShares MSCI USA ESG Select ETF", "industry": "Large Blend", "asset_class": "equity", "weight": 0.06, "dollars": 6000, "flagged": false, "annual_return": 0.109, "volatility": 0.168, "max_drawdown": -0.182, "sharpe": 0.40},
+    {"ticker": "V", "name": "Visa Inc.", "industry": "Credit Services", "asset_class": "equity", "weight": 0.05, "dollars": 5000, "flagged": false, "annual_return": 0.124, "volatility": 0.192, "max_drawdown": -0.176, "sharpe": 0.43},
+    {"ticker": "COST", "name": "Costco Wholesale Corporation", "industry": "Discount Stores", "asset_class": "equity", "weight": 0.05, "dollars": 5000, "flagged": false, "annual_return": 0.231, "volatility": 0.205, "max_drawdown": -0.162, "sharpe": 0.92},
+    {"ticker": "ESGV", "name": "Vanguard ESG U.S. Stock ETF", "industry": "Large Blend", "asset_class": "equity", "weight": 0.05, "dollars": 5000, "flagged": false, "annual_return": 0.121, "volatility": 0.171, "max_drawdown": -0.191, "sharpe": 0.46},
+    {"ticker": "AMZN", "name": "Amazon.com, Inc.", "industry": "Internet Retail", "asset_class": "equity", "weight": 0.03, "dollars": 3000, "flagged": true, "annual_return": 0.198, "volatility": 0.312, "max_drawdown": -0.284, "sharpe": 0.50}
+  ],
+  "screen": [
+    {"ticker": "PM", "name": "Philip Morris International Inc.", "industry": "Tobacco", "status": "excluded", "stage": "industry screen (no data used)", "reason": "Industry 'Tobacco' falls under excluded theme: tobacco. No prices or news were retrieved for this company.", "evidence": null, "url": null},
+    {"ticker": "MO", "name": "Altria Group, Inc.", "industry": "Tobacco", "status": "excluded", "stage": "industry screen (no data used)", "reason": "Industry 'Tobacco' falls under excluded theme: tobacco. No prices or news were retrieved for this company.", "evidence": null, "url": null},
+    {"ticker": "LMT", "name": "Lockheed Martin Corporation", "industry": "Aerospace & Defense", "status": "excluded", "stage": "industry screen (no data used)", "reason": "Industry 'Aerospace & Defense' falls under excluded theme: weapons. No prices or news were retrieved for this company.", "evidence": null, "url": null},
+    {"ticker": "RTX", "name": "RTX Corporation", "industry": "Aerospace & Defense", "status": "excluded", "stage": "industry screen (no data used)", "reason": "Industry 'Aerospace & Defense' falls under excluded theme: weapons. No prices or news were retrieved for this company.", "evidence": null, "url": null},
+    {"ticker": "GD", "name": "General Dynamics Corporation", "industry": "Aerospace & Defense", "status": "excluded", "stage": "industry screen (no data used)", "reason": "Industry 'Aerospace & Defense' falls under excluded theme: weapons. No prices or news were retrieved for this company.", "evidence": null, "url": null},
+    {"ticker": "NOC", "name": "Northrop Grumman Corporation", "industry": "Aerospace & Defense", "status": "excluded", "stage": "industry screen (no data used)", "reason": "Industry 'Aerospace & Defense' falls under excluded theme: weapons. No prices or news were retrieved for this company.", "evidence": null, "url": null},
+    {"ticker": "AMZN", "name": "Amazon.com, Inc.", "industry": "Internet Retail", "status": "flagged", "stage": "AI news screen", "reason": "A recent headline reports warehouse workers' rights complaints, which conflicts with the charity's flagged concerns.", "evidence": "Sample headline: warehouse staff raise workers' rights concerns", "url": null},
+    {"ticker": "MSFT", "name": "Microsoft Corporation", "industry": "Software - Infrastructure", "status": "included", "stage": "AI news screen", "reason": "No recent controversies found in the news sample.", "evidence": null, "url": null}
+  ],
+  "split": {"equity": 0.50, "bond": 0.35, "cash": 0.15},
+  "rate_note": "3-month Treasury yield is 4.2%, so 5% was moved from equities to cash because cash pays a meaningful return with almost no risk.",
+  "expected_return": 0.081,
+  "risk_free_rate": 0.042,
+  "companies_scanned": 100,
+  "notes": ["Sample response: illustrative values, not a real analysis."]
+}

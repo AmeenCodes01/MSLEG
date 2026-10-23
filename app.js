@@ -463,14 +463,68 @@ function showReview() {
   elements.dialog.showModal();
 }
 
-function showDemoResult() {
+async function buildBrief() {
+  // Only text files are read; PDF/DOC attachments are listed by name only.
+  const texts = await Promise.all(profile.attachments
+    .filter((file) => /\.(txt|csv)$/i.test(file.name))
+    .map((file) => file.text()));
+  const esg = parseInt(profile.esg, 10);
+  return {
+    mission: profile.mission,
+    exclusions: [...profile.exclusions],
+    flags: [...profile.flags],
+    min_esg: Number.isNaN(esg) ? null : esg,
+    risk: profile.risk || null,
+    notes: texts.join("\n\n"),
+  };
+}
+
+const money = (n) => `$${Math.round(n).toLocaleString()}`;
+const pct = (n) => (n == null ? "–" : `${(n * 100).toFixed(1)}%`);
+const cell = (s) => String(s ?? "").replace(/\|/g, "/");
+
+function resultMarkdown(res) {
+  const holdings = res.portfolio.map((h) =>
+    `| ${cell(h.name)} (${h.ticker}) | ${h.asset_class} | ${money(h.dollars)} | ${pct(h.annual_return)} | ${pct(h.volatility)} | ${h.flagged ? "Flagged" : ""} |`);
+  const screened = res.screen.filter((s) => s.status !== "included").map((s) =>
+    `- **${s.status === "excluded" ? "Excluded" : "Flagged"}: ${cell(s.name)} (${s.ticker})**: ${s.reason}`
+    + (s.evidence ? ` Evidence: ${s.url ? `[${s.evidence}](${s.url})` : s.evidence}` : ""));
+  return [
+    `**Where the $100,000 goes** (${res.companies_scanned} companies scanned)`,
+    "",
+    "| Holding | Type | Amount | Annual return | Volatility | |",
+    "| :--- | :--- | ---: | ---: | ---: | :--- |",
+    ...holdings,
+    "",
+    "**Excluded or flagged, and why**",
+    "",
+    ...(screened.length ? screened : ["- Nothing was excluded or flagged."]),
+    ...(res.notes.length ? ["", ...res.notes.map((n) => `*${n}*`)] : []),
+  ].join("\n");
+}
+
+async function runAnalysis() {
   elements.dialog.close();
-  addMessage("Your brief is confirmed. This prototype has not sent your criteria or attachments to a backend, and it has not fetched live market, ESG, economic, news, or sentiment data. In the connected product, this is where sourced analysis and uncertainty would be returned for your review.");
-  const recommendation = document.createElement("article");
-  recommendation.className = "demo-result";
-  recommendation.innerHTML = `<div class="result-label"><span>✳</span> DEMO RESPONSE · NO LIVE DATA</div><strong>Analysis is ready to connect</strong><p>Connect a backend to evaluate securities against your approved criteria. Any future recommendations should include dated data sources, model uncertainty, controversy evidence, and a clear explanation of why an investment fits—or fails—your charity’s policy.</p><div class="result-footer">No investment recommendation has been generated.</div>`;
-  elements.messages.insertBefore(recommendation, elements.typing);
-  elements.messages.scrollTop = elements.messages.scrollHeight;
+  addMessage("Your brief is confirmed. Running the analysis now; a live run can take a few minutes.");
+  elements.typing.hidden = false;
+  elements.confirm.disabled = true;
+  try {
+    // Open the page with ?sample=1 to get a canned response without API keys.
+    const sample = new URLSearchParams(location.search).has("sample") ? "?sample=1" : "";
+    const response = await fetch(`/api/run${sample}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(await buildBrief()),
+    });
+    const res = await response.json();
+    if (!response.ok) throw new Error(res.error || `Server returned ${response.status}`);
+    addMessage(resultMarkdown(res));
+    addMessage(res.memo);
+  } catch (error) {
+    addMessage(`The analysis could not run: ${error.message}`);
+  } finally {
+    elements.typing.hidden = true;
+  }
 }
 
 elements.form.addEventListener("submit", (event) => {
@@ -515,6 +569,6 @@ elements.reviewButton.addEventListener("click", showReview);
 elements.consent.addEventListener("change", () => {
   elements.confirm.disabled = !elements.consent.checked;
 });
-elements.confirm.addEventListener("click", showDemoResult);
+elements.confirm.addEventListener("click", runAnalysis);
 
 renderProfile();

@@ -9,15 +9,14 @@ Assistant messages support basic Markdown formatting: headings, paragraphs, emph
 From this directory, run:
 
 ```sh
-python3 -m http.server 8000
+python3 backend/server.py
 ```
 
-Then open <http://localhost:8000>.
+Then open <http://localhost:8000>, or <http://localhost:8000/?sample=1> for a canned response that needs no API keys. See [SPEC.md](SPEC.md) for setup and the request and response schema.
 
 ## Prototype boundaries
 
-- This is a static frontend. It does not call a backend, fetch live company or economic data, or generate investment advice.
-- Attachments are selected in the browser and their names appear in the review brief. Their contents are not read or uploaded.
-- The “Confirm & run demo” action demonstrates the approval flow and clearly states that no analysis was run.
+- “Confirm & run analysis” sends the approved brief to `backend/server.py`, which runs `backend/pipeline.py`. Output is educational, not investment advice.
+- Only `.txt` and `.csv` attachments are read; other attachments appear in the review brief by name only.
 - The draft profile uses lightweight keyword matching to demonstrate the interaction. It is not an AI extraction or validation system.
 - A production integration should send only the confirmed brief, show the exact request, keep citations and dates with all evidence, and return uncertainty and exclusions alongside any recommendations.

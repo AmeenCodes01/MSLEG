@@ -158,7 +158,7 @@
 
         <button class="review-button" id="review-button" type="button" disabled><span>Review analysis brief</span><span aria-hidden="true">→</span></button>
         <p class="review-hint">Add at least one value or criterion to continue.</p>
-        <div class="source-note"><span aria-hidden="true">⛨</span><span>Your criteria are reviewed before being used. Demo mode does not send data to a backend.</span></div>
+        <div class="source-note"><span aria-hidden="true">⛨</span><span>Your criteria are reviewed before being used. Only the confirmed brief is sent for analysis.</span></div>
       </aside>
     </div>
 
@@ -167,16 +167,16 @@
         <button class="dialog-close" aria-label="Close review" value="cancel">×</button>
         <span class="panel-eyebrow">FINAL CHECK</span>
         <h2 id="dialog-title">Review your analysis brief</h2>
-        <p class="dialog-intro">Confirm the criteria and data categories below. A connected version would use this approved brief to request analysis.</p>
+        <p class="dialog-intro">Confirm the criteria and data categories below. Only this approved brief is sent to the analysis backend.</p>
         <div class="review-summary" id="review-summary"></div>
         <div class="data-consent">
           <strong>Data requested for analysis</strong>
           <p>Company and market data, macroeconomic indicators, public news and sentiment, and a scan for ethical controversies. This demo includes attachment names only; file contents are not read or uploaded.</p>
         </div>
-        <label class="consent-check"><input id="consent-checkbox" type="checkbox"><span>I have reviewed this brief and approve a demo analysis using these criteria.</span></label>
+        <label class="consent-check"><input id="consent-checkbox" type="checkbox"><span>I have reviewed this brief and approve an analysis using these criteria.</span></label>
         <div class="dialog-actions">
           <button class="secondary-button" value="cancel">Keep editing</button>
-          <button class="confirm-button" id="confirm-button" type="button" disabled>Confirm & run demo <span aria-hidden="true">→</span></button>
+          <button class="confirm-button" id="confirm-button" type="button" disabled>Confirm & run analysis <span aria-hidden="true">→</span></button>
         </div>
       </form>
     </dialog>
