@@ -1,6 +1,6 @@
 {
  "sample": true,
- "memo": "## Recommendation\n\n*Sample response: illustrative values, not a real analysis.*\n\nWe recommend a balanced $100,000 portfolio that excludes tobacco and weapons makers and holds 6 companies alongside ESG equity, bond and cash funds. It suits a cancer research charity that funds grants every year and needs moderate risk.\n\n## How the $100,000 is split\n\n- **Equities: $50,000**, split across 6 companies and 3 ESG equity funds\n- **Bonds: $35,000**\n- **Cash: $15,000**, which includes 5% moved from equities because the 3-month Treasury yield is 4.2%\n\n## What we excluded\n\nTobacco (Philip Morris, Altria) and weapons makers (Lockheed Martin, RTX, General Dynamics, Northrop Grumman), based on each company's official industry. Amazon is held at half weight because of a workers' rights headline.\n\n## Key risks\n\nPast returns do not predict future returns, and bond funds can fall when interest rates rise.\n\n*Educational hackathon project. Not financial advice.*",
+ "memo": "## Recommendation\n\n*Sample response: illustrative values, not a real analysis.*\n\nWe recommend a balanced $100,000 portfolio that excludes tobacco and weapons makers and holds 5 companies, one per industry, alongside ESG equity, bond and cash funds. It suits a cancer research charity that funds grants every year and needs moderate risk.\n\n## How the $100,000 is split\n\n- **Equities: $50,000**, split across 5 companies and 3 ESG equity funds\n- **Bonds: $35,000**\n- **Cash: $15,000**, which includes 5% moved from equities because the 3-month Treasury yield is 4.2%\n\n## What we excluded\n\nTobacco (Philip Morris, Altria) and weapons makers (Lockheed Martin, RTX, General Dynamics, Northrop Grumman), based on each company's official industry. Amazon is held at half weight because of a workers' rights headline.\n\n## Key risks\n\nPast returns do not predict future returns, and bond funds can fall when interest rates rise.\n\n*Educational hackathon project. Not financial advice.*",
  "policy": {
   "mission": "cancer research",
   "exclude_tags": [
@@ -72,25 +72,12 @@
    "sharpe": 2.0
   },
   {
-   "ticker": "MSFT",
-   "name": "Microsoft Corporation",
-   "industry": "Software - Infrastructure",
-   "asset_class": "equity",
-   "weight": 0.07,
-   "dollars": 7000,
-   "flagged": false,
-   "annual_return": 0.162,
-   "volatility": 0.231,
-   "max_drawdown": -0.214,
-   "sharpe": 0.52
-  },
-  {
    "ticker": "ESGU",
    "name": "iShares ESG Aware MSCI USA ETF",
    "industry": "Large Blend",
    "asset_class": "equity",
-   "weight": 0.07,
-   "dollars": 7000,
+   "weight": 0.14,
+   "dollars": 14000,
    "flagged": false,
    "annual_return": 0.118,
    "volatility": 0.162,
@@ -286,15 +273,15 @@
    "ticker": "MSFT",
    "name": "Microsoft Corporation",
    "industry": "Software - Infrastructure",
-   "status": "included",
+   "status": "not_selected",
    "stage": "AI news screen",
-   "reason": "No recent news conflicts with the charity's values.",
+   "reason": "Portfolio already holds 5 stocks; combined rank #6 of 14 on volatility and economy fit. News check: No recent news conflicts with the charity's values.",
    "evidence": null,
    "url": null,
    "rank": 2,
    "ranked_of": 93,
    "news_checked": 10,
-   "selection_rank": 5,
+   "selection_rank": 6,
    "selection_of": 14,
    "sector": "Technology",
    "volatility_score": 0.55,
@@ -332,7 +319,7 @@
    "rank": 4,
    "ranked_of": 93,
    "news_checked": 12,
-   "selection_rank": 6,
+   "selection_rank": 5,
    "selection_of": 14,
    "sector": "Consumer Cyclical",
    "volatility_score": 0.3,
@@ -385,7 +372,7 @@
    "stage": "AI news screen",
    "evidence": null,
    "url": null,
-   "reason": "Portfolio already holds its maximum number of stocks. News check: no conflicts found.",
+   "reason": "Portfolio already holds 5 stocks. News check: no conflicts found.",
    "rank": 7,
    "ranked_of": 93,
    "news_checked": 8
@@ -398,7 +385,7 @@
    "stage": "AI news screen",
    "evidence": null,
    "url": null,
-   "reason": "Portfolio already holds its maximum number of stocks. News check: no conflicts found.",
+   "reason": "Portfolio already holds 5 stocks. News check: no conflicts found.",
    "rank": 8,
    "ranked_of": 93,
    "news_checked": 8
@@ -411,7 +398,7 @@
    "stage": "AI news screen",
    "evidence": null,
    "url": null,
-   "reason": "Portfolio already holds its maximum number of stocks. News check: no conflicts found.",
+   "reason": "Portfolio already holds 5 stocks. News check: no conflicts found.",
    "rank": 9,
    "ranked_of": 93,
    "news_checked": 8
@@ -424,7 +411,7 @@
    "stage": "AI news screen",
    "evidence": null,
    "url": null,
-   "reason": "Portfolio already holds its maximum number of stocks. News check: no conflicts found.",
+   "reason": "Portfolio already holds 5 stocks. News check: no conflicts found.",
    "rank": 10,
    "ranked_of": 93,
    "news_checked": 8
@@ -437,7 +424,7 @@
    "stage": "AI news screen",
    "evidence": null,
    "url": null,
-   "reason": "Portfolio already holds its maximum number of stocks. News check: no conflicts found.",
+   "reason": "Portfolio already holds 5 stocks. News check: no conflicts found.",
    "rank": 11,
    "ranked_of": 93,
    "news_checked": 8
@@ -450,7 +437,7 @@
    "stage": "AI news screen",
    "evidence": null,
    "url": null,
-   "reason": "Portfolio already holds its maximum number of stocks. News check: no conflicts found.",
+   "reason": "Portfolio already holds 5 stocks. News check: no conflicts found.",
    "rank": 12,
    "ranked_of": 93,
    "news_checked": 8
@@ -463,7 +450,7 @@
    "stage": "AI news screen",
    "evidence": null,
    "url": null,
-   "reason": "Portfolio already holds its maximum number of stocks. News check: no conflicts found.",
+   "reason": "Portfolio already holds 5 stocks. News check: no conflicts found.",
    "rank": 13,
    "ranked_of": 93,
    "news_checked": 8
@@ -476,7 +463,7 @@
    "stage": "AI news screen",
    "evidence": null,
    "url": null,
-   "reason": "Portfolio already holds its maximum number of stocks. News check: no conflicts found.",
+   "reason": "Portfolio already holds 5 stocks. News check: no conflicts found.",
    "rank": 14,
    "ranked_of": 93,
    "news_checked": 8
@@ -489,7 +476,7 @@
    "stage": "AI news screen",
    "evidence": null,
    "url": null,
-   "reason": "Portfolio already holds its maximum number of stocks. News check: no conflicts found.",
+   "reason": "Portfolio already holds 5 stocks. News check: no conflicts found.",
    "rank": 15,
    "ranked_of": 93,
    "news_checked": 8

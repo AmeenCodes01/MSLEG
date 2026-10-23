@@ -7,7 +7,7 @@ chat text --POST /api/run {"policy": "..."}--> backend/server.py --> pipeline.ru
                                                                        |  parse_policy: LLM -> JSON rules
                                                                        |  industry screen -> prices -> Sharpe rank
                                                                        |  news check top 20 (LLM, JSON)
-                                                                       |  World Bank macro re-rank -> pick 12 -> allocate
+                                                                       |  World Bank macro re-rank -> pick 5 (1 per industry) -> allocate
                                                                        |  memo (LLM, markdown)
 chat <------------------------------- JSON result ---------------------'
 ```
@@ -93,7 +93,7 @@ Purna's `backend/api.py` (FastAPI, `POST /api/analyse` on port 8001, see `backen
 - defensive sectors (healthcare, consumer defensive, utilities) score = 1 − the macro score
 - other sectors (technology, energy, communication services) score 0.5
 
-The top 12 by that combined score are picked; there is no per-industry limit. The macro data does **not** change exclusions or dollar amounts. If the World Bank is unreachable or its data is over 4 years old, every company gets a neutral 0.5. The score is an unvalidated heuristic, not a forecast.
+The top 5 by that combined score are picked, at most 1 per industry, so no single industry can sink the stock slice. The macro data does **not** change exclusions or dollar amounts. If the World Bank is unreachable or its data is over 4 years old, every company gets a neutral 0.5. The score is an unvalidated heuristic, not a forecast.
 
 ## What the chat shows
 

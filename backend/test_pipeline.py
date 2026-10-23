@@ -62,6 +62,7 @@ assert (companies.status == "included").sum() == p.MAX_STOCKS, "included means h
 assert out["macro_context"]["score"] == 0.8
 held_rows = companies[companies.ticker.isin(held)]
 assert held_rows.selection_rank.notna().all()
+assert held_rows.groupby("industry").size().max() <= p.MAX_PER_INDUSTRY
 news_checked = companies[companies.stage == "AI news screen"]
 assert len(news_checked) == p.SHORTLIST
 assert port.dollars.sum() == p.BUDGET
