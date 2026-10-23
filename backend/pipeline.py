@@ -161,6 +161,7 @@ def get_universe(n=UNIVERSE_SIZE):
     def fetch():
         q = yf.EquityQuery("and", [
             yf.EquityQuery("eq", ["region", "us"]),
+            yf.EquityQuery("is-in", ["exchange", "NMS", "NYQ"]),  # Nasdaq and NYSE only, no OTC
             yf.EquityQuery("gt", ["intradaymarketcap", 20_000_000_000]),
         ])
         res = yf.screen(q, size=min(n, 250), sortField="intradaymarketcap", sortAsc=False)
@@ -362,6 +363,7 @@ def explain(policy, port, screen_df, split, rate_note, rf, exp_ret, n_scanned):
         "news-screen decisions. Round dollar figures to the nearest $100. "
         "Where an exclusion was inferred from the charity's mission rather than stated, say so "
         "and give the reason (from policy.inferred_exclusions). "
+        "Do not mention exclusion themes that matched no companies. "
         "Plain English. Sections: 1) Recommendation in two sentences, "
         "2) How the $100,000 is split and why, 3) Top holdings and why each fits, "
         "4) What we excluded and why, 5) Key risks, "
