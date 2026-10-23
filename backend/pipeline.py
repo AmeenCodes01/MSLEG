@@ -33,8 +33,9 @@ CACHE.mkdir(exist_ok=True)
 USE_CACHE = os.getenv("USE_CACHE", "0") == "1"
 
 UNIVERSE_SIZE = 100      # how many of the largest US companies to scan
-SHORTLIST = 15           # best risk-adjusted stocks sent to the AI news screen
+MAX_NEWS_CHECKS = 20     # most stocks the AI news screen will read (keeps the run fast)
 MAX_STOCKS = 12          # stocks kept in the final portfolio
+MAX_PER_INDUSTRY = 2     # diversification: at most this many stocks from one industry
 
 TAGS = ["fossil_fuels", "tobacco", "weapons", "gambling", "alcohol"]
 # No fixed exclusions: what a charity avoids depends on its mission
@@ -161,6 +162,7 @@ def get_universe(n=UNIVERSE_SIZE):
     def fetch():
         q = yf.EquityQuery("and", [
             yf.EquityQuery("eq", ["region", "us"]),
+            yf.EquityQuery("is-in", ["exchange", "NMS", "NYQ"]),  # Nasdaq and NYSE only, no OTC
             yf.EquityQuery("gt", ["intradaymarketcap", 20_000_000_000]),
         ])
         res = yf.screen(q, size=min(n, 250), sortField="intradaymarketcap", sortAsc=False)
@@ -360,6 +362,8 @@ def explain(policy, port, screen_df, split, rate_note, rf, exp_ret, n_scanned):
         "news-screen decisions. Round dollar figures to the nearest $100. "
         "Where an exclusion was inferred from the charity's mission rather than stated, say so "
         "and give the reason (from policy.inferred_exclusions). "
+        "Stocks were picked by best risk-adjusted return (Sharpe ratio), at most two per industry "
+        "for diversification. Do not mention exclusion themes that matched no companies. "
         "Plain English. Sections: 1) Recommendation in two sentences, "
         "2) How the $100,000 is split and why, 3) Top holdings and why each fits, "
         "4) What we excluded and why, 5) Key risks, "
@@ -415,13 +419,18 @@ def run(policy_text, progress=None):
     rf = get_risk_free()
     metrics = compute_metrics(get_prices(allowed + list(FUNDS)), rf)
 
-    # Shortlist the best risk-adjusted stocks, then let the AI read their news.
+    # Walk down the best risk-adjusted stocks, keeping industries diversified,
+    # and let the AI read each candidate's news before it is accepted.
     ranked = metrics.loc[[t for t in allowed if t in metrics.index]].sort_values("sharpe", ascending=False)
-    shortlist = list(ranked.index[:SHORTLIST])
-    chosen = []
-    for i, t in enumerate(shortlist):
+    chosen, per_industry, checks = [], {}, 0
+    for t in ranked.index:
+        if len(chosen) >= MAX_STOCKS or checks >= MAX_NEWS_CHECKS:
+            break
+        if per_industry.get(profiles[t]["industry"], 0) >= MAX_PER_INDUSTRY:
+            continue
+        checks += 1
         name = profiles[t]["name"]
-        step(0.40 + 0.45 * i / max(len(shortlist), 1), f"AI reading news for {name}…")
+        step(0.40 + 0.45 * checks / MAX_NEWS_CHECKS, f"AI reading news for {name}…")
         news = cached(f"news_{t}", lambda t=t: get_news(t))
         j = judge_news(t, name, news, policy)
         url = next((h["url"] for h in news if h["headline"] == j.get("evidence")), None)
@@ -429,8 +438,9 @@ def run(policy_text, progress=None):
         rows.append({"ticker": t, "name": name, "industry": profiles[t]["industry"], "status": status,
                      "stage": "AI news screen", "reason": j.get("reason"),
                      "evidence": j.get("evidence"), "url": url})
-        if status != "excluded" and len(chosen) < MAX_STOCKS:
+        if status != "excluded":
             chosen.append((t, status == "flagged"))
+            per_industry[profiles[t]["industry"]] = per_industry.get(profiles[t]["industry"], 0) + 1
 
     for f in FUNDS:
         rows.append({"ticker": f, "name": profiles[f]["name"], "industry": profiles[f].get("category") or "Fund",
